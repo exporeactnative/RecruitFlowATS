@@ -19,7 +19,7 @@ export default function HomeScreen() {
   
   // Get user info from auth
   const recruiterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Recruiter";
-  const recruiterRole = "Senior Recruiter";
+  const recruiterRole = user?.user_metadata?.role || "Recruiter";
 
   const handleLogout = () => {
     Alert.alert(

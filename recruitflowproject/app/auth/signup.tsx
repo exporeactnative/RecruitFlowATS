@@ -27,6 +27,7 @@ export default function SignUpScreen() {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +35,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!fullName || !email || !password || !confirmPassword) {
+    if (!fullName || !email || !role || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -50,7 +51,7 @@ export default function SignUpScreen() {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp(email, password, fullName, role);
     setLoading(false);
 
     if (error) {
@@ -133,6 +134,22 @@ export default function SignUpScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
+              />
+            </View>
+          </View>
+
+          {/* Role Input */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.text }]}>Role</Text>
+            <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+              <Ionicons name="briefcase-outline" size={20} color={colors.textMuted} />
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder="e.g., Recruiter, Hiring Manager, HR Lead"
+                placeholderTextColor={colors.textMuted}
+                value={role}
+                onChangeText={setRole}
+                autoCapitalize="words"
               />
             </View>
           </View>
