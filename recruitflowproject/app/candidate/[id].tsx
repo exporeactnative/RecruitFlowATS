@@ -33,6 +33,7 @@ export default function CandidateProfileScreen() {
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [editingTask, setEditingTask] = useState<any>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     loadCandidate();
@@ -178,6 +179,7 @@ export default function CandidateProfileScreen() {
 
           {/* Upcoming Interviews & Tasks */}
           <UpcomingEventsSection 
+            key={refreshKey}
             candidateId={candidate.id}
             onEditInterview={(event) => {
               setEditingEvent(event);
@@ -204,6 +206,7 @@ export default function CandidateProfileScreen() {
         onClose={() => {
           setShowScheduleModal(false);
           setEditingEvent(null);
+          setRefreshKey(prev => prev + 1); // Force refresh of UpcomingEventsSection
         }}
         candidateId={candidate.id}
         candidateName={`${candidate.first_name} ${candidate.last_name}`}
@@ -217,6 +220,7 @@ export default function CandidateProfileScreen() {
         onClose={() => {
           setShowTaskModal(false);
           setEditingTask(null);
+          setRefreshKey(prev => prev + 1); // Force refresh of UpcomingEventsSection
         }}
         candidateId={candidate.id}
         candidateName={`${candidate.first_name} ${candidate.last_name}`}
