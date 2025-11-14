@@ -31,22 +31,30 @@ function RootLayoutNav() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === 'auth';
+    const inOnboarding = segments[0] === 'onboarding';
+    const onboardingCompleted = user?.user_metadata?.onboarding_completed;
 
     if (!user && !inAuthGroup) {
       // Redirect to login if not authenticated
       router.replace('/auth/login' as any);
-    } else if (user && inAuthGroup) {
-      // Redirect to tabs if authenticated
+    } else if (user && !onboardingCompleted && !inOnboarding) {
+      // Redirect to onboarding if authenticated but hasn't completed onboarding
+      router.replace('/onboarding' as any);
+    } else if (user && onboardingCompleted && (inAuthGroup || inOnboarding)) {
+      // Redirect to tabs if authenticated and onboarding complete
       router.replace('/(tabs)' as any);
     }
   }, [user, segments, loading]);
 
   return (
-    <Stack>
-      <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-      <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="auth/login" />
+      <Stack.Screen name="auth/signup" />
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="candidate/[id]" />
+      <Stack.Screen name="add-candidate" />
+      <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: 'Modal' }} />
     </Stack>
   );
 }

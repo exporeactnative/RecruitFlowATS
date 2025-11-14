@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { RecentActivity } from '@/components/candidates/RecentActivity';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -21,12 +22,21 @@ export default function HomeScreen() {
   const recruiterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Recruiter";
   const recruiterRole = user?.user_metadata?.role || "Recruiter";
 
-  const handleLogout = () => {
+  const handleSettings = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      'Settings',
+      'Choose an option',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset & View Onboarding',
+          onPress: async () => {
+            // Reset onboarding flag
+            await supabase.auth.updateUser({
+              data: { onboarding_completed: false },
+            });
+            router.push('/onboarding' as any);
+          },
+        },
         {
           text: 'Sign Out',
           style: 'destructive',
@@ -34,6 +44,7 @@ export default function HomeScreen() {
             await signOut();
           },
         },
+        { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
@@ -53,8 +64,8 @@ export default function HomeScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color={BrandColors.white} />
+          <TouchableOpacity style={styles.logoutButton} onPress={handleSettings}>
+            <Ionicons name="settings-outline" size={24} color={BrandColors.white} />
           </TouchableOpacity>
         </View>
 
