@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,15 +9,34 @@ import { TabView } from '@/components/candidates/TabView';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { RecentActivity } from '@/components/candidates/RecentActivity';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const router = useRouter();
+  const { user, signOut } = useAuth();
   
-  // Recruiter info (hardcoded for now - can be from auth later)
-  const recruiterName = "Sarah Chen";
+  // Get user info from auth
+  const recruiterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Recruiter";
   const recruiterRole = "Senior Recruiter";
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -34,6 +53,9 @@ export default function HomeScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={24} color={BrandColors.white} />
+          </TouchableOpacity>
         </View>
 
         {/* Recruiter Profile Card */}
@@ -41,7 +63,7 @@ export default function HomeScreen() {
           <View style={styles.avatarContainer}>
             <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
               <Text style={styles.avatarText}>
-                {recruiterName.split(' ').map(n => n[0]).join('')}
+                {recruiterName.split(' ').map((n: string) => n[0]).join('')}
               </Text>
             </View>
           </View>
@@ -120,12 +142,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerContent: {
-    marginBottom: 20,
+    marginBottom: 24,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   logo: {
-    width: 250,
-    height: 90,
+    width: 200,
+    height: 60,
+  },
+  logoutButton: {
+    position: 'absolute',
+    right: 0,
+    padding: 8,
   },
   headerTitle: {
     fontSize: 28,
