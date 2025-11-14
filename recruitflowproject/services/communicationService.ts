@@ -286,4 +286,57 @@ export const communicationService = {
     console.log('Twilio SMS would be sent via backend API');
     throw new Error('Twilio integration requires backend API setup');
   },
+
+  // ===== API WRAPPERS WITH BETTER ERROR HANDLING =====
+
+  // Send email via Gmail API with result
+  async sendEmailViaAPI(
+    toEmail: string,
+    subject: string,
+    body: string,
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.sendEmail(toEmail, subject, body, candidateId, userId, userName, candidateName);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to send email' };
+    }
+  },
+
+  // Make call via Twilio API with result
+  async makeCallViaAPI(
+    phoneNumber: string,
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.makeCall(phoneNumber, candidateId, userId, userName, candidateName);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to make call' };
+    }
+  },
+
+  // Send SMS via Twilio API with result
+  async sendSMSViaAPI(
+    phoneNumber: string,
+    message: string,
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.sendSMS(phoneNumber, message, candidateId, userId, userName, candidateName);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to send SMS' };
+    }
+  },
 };

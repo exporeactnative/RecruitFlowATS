@@ -40,11 +40,15 @@ export function CandidateActions({
       color: BrandColors.teal[500],
       onPress: async () => {
         try {
-          await communicationService.makeCall(phone, candidateId, userId, userName, candidateName);
+          const result = await communicationService.makeCallViaAPI(phone, candidateId, userId, userName, candidateName);
           setShowActionsModal(false);
-          Alert.alert('Success', 'Call logged! (Note: Phone calls require a real device, not simulator)');
+          if (result.success) {
+            Alert.alert('Success', 'Call initiated via Twilio!');
+          } else {
+            Alert.alert('Error', result.error || 'Failed to make call');
+          }
         } catch (error) {
-          Alert.alert('Error', 'Failed to log call');
+          Alert.alert('Error', 'Failed to make call');
         }
       },
     },
@@ -54,18 +58,22 @@ export function CandidateActions({
       color: BrandColors.orange[500],
       onPress: async () => {
         try {
-          await communicationService.sendSMS(
+          const result = await communicationService.sendSMSViaAPI(
             phone,
-            `Hi ${candidateName}, `,
+            `Hi ${candidateName}, thank you for your interest in our position. We'll be in touch soon!`,
             candidateId,
             userId,
             userName,
             candidateName
           );
           setShowActionsModal(false);
-          Alert.alert('Success', 'SMS logged! (Note: SMS requires a real device, not simulator)');
+          if (result.success) {
+            Alert.alert('Success', 'SMS sent via Twilio!');
+          } else {
+            Alert.alert('Error', result.error || 'Failed to send SMS');
+          }
         } catch (error) {
-          Alert.alert('Error', 'Failed to log SMS');
+          Alert.alert('Error', 'Failed to send SMS');
         }
       },
     },
@@ -75,17 +83,21 @@ export function CandidateActions({
       color: colors.info,
       onPress: async () => {
         try {
-          await communicationService.sendEmail(
+          const result = await communicationService.sendEmailViaAPI(
             email,
             `Re: Your Application`,
-            `Hi ${candidateName},\n\n`,
+            `Hi ${candidateName},\n\nThank you for your interest in our position. We appreciate your application and will review it carefully.\n\nBest regards,\nRecruitment Team`,
             candidateId,
             userId,
             userName,
             candidateName
           );
           setShowActionsModal(false);
-          Alert.alert('Success', 'Email composer opened. Activity will be logged when sent.');
+          if (result.success) {
+            Alert.alert('Success', 'Email sent via Gmail!');
+          } else {
+            Alert.alert('Error', result.error || 'Failed to send email');
+          }
         } catch (error) {
           Alert.alert('Error', 'Failed to send email');
         }

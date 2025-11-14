@@ -60,34 +60,46 @@ export default function CandidateProfileScreen() {
   const handleEmailPress = async () => {
     if (!candidate) return;
     try {
-      await communicationService.sendEmail(
+      const result = await communicationService.sendEmailViaAPI(
         candidate.email,
         'Re: Your Application',
-        `Hi ${candidate.first_name} ${candidate.last_name},\n\n`,
+        `Hi ${candidate.first_name} ${candidate.last_name},\n\nThank you for your interest in the ${candidate.position} position.\n\nBest regards,\nRecruitment Team`,
         candidate.id,
-        '',
-        'Sarah Chen',
+        currentUser?.id || '',
+        currentUser?.email || 'Recruiter',
         `${candidate.first_name} ${candidate.last_name}`
       );
-      Alert.alert('Success', 'Email composer opened!');
+      
+      if (result.success) {
+        Alert.alert('Success', 'Email sent successfully via Gmail!');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to send email');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to open email composer');
+      console.error('Email error:', error);
+      Alert.alert('Error', 'Failed to send email');
     }
   };
 
   const handleCallPress = async () => {
     if (!candidate) return;
     try {
-      await communicationService.makeCall(
+      const result = await communicationService.makeCallViaAPI(
         candidate.phone,
         candidate.id,
-        '',
-        'Sarah Chen',
+        currentUser?.id || '',
+        currentUser?.email || 'Recruiter',
         `${candidate.first_name} ${candidate.last_name}`
       );
-      Alert.alert('Success', 'Call logged! (Note: Phone calls require a real device)');
+      
+      if (result.success) {
+        Alert.alert('Success', 'Call initiated via Twilio!');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to make call');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to log call');
+      console.error('Call error:', error);
+      Alert.alert('Error', 'Failed to make call');
     }
   };
 
