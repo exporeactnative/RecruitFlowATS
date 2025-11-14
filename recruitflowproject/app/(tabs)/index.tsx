@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -144,7 +144,7 @@ export default function CandidatesScreen() {
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>RecruitFlow</Text>
+          <Text style={styles.headerTitle}>Candidates</Text>
           <TouchableOpacity 
             style={styles.addButton}
             onPress={() => router.push('/add-candidate')}
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 55,
     paddingBottom: 30,
     paddingHorizontal: 20,
   },
@@ -217,11 +217,21 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: BrandColors.white,
-    marginBottom: 4,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: BrandColors.teal[50],
+  logoContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: BrandColors.white,
+    letterSpacing: 0.5,
+  },
+  logo: {
+    width: 250,
+    height: 90,
   },
   addButton: {
     padding: 4,

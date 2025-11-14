@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, BrandColors } from '@/constants/theme';
@@ -145,7 +145,7 @@ export default function PipelineScreen() {
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <View>
+          <View style={styles.logoTitleContainer}>
             <Text style={styles.headerTitle}>Pipeline</Text>
             <Text style={styles.headerSubtitle}>Recruitment Overview</Text>
           </View>
@@ -241,6 +241,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  logoTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  logo: {
+    width: 250,
+    height: 90,
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 28,

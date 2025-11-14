@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +29,11 @@ export default function HomeScreen() {
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>RecruitFlow</Text>
+          <Image 
+            source={require('@/assets/images/Recruitflow_1-removebg-preview.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Recruiter Profile Card */}
@@ -116,7 +120,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerContent: {
-    marginBottom: 30,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  logo: {
+    width: 250,
+    height: 90,
   },
   headerTitle: {
     fontSize: 28,
