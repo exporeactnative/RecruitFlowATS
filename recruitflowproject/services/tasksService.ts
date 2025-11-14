@@ -69,15 +69,58 @@ export const tasksService = {
 
     if (error) throw error;
 
-    // Log activity (only if we have a user ID)
-    if (assignedTo) {
-      await supabase.from('activities').insert({
+    // Create task in Google Tasks
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const response = await supabase.functions.invoke('create-task', {
+          body: {
+            title,
+            notes: description,
+            due: dueDate,
+            candidateId,
+            candidateName: assignedToName,
+            userId: assignedTo,
+            userName: assignedToName,
+          },
+        });
+
+        // Update task with Google Task ID if successful
+        if (response.data?.taskId) {
+          await supabase
+            .from('tasks')
+            .update({ google_task_id: response.data.taskId })
+            .eq('id', data.id);
+        }
+      }
+    } catch (error) {
+      console.log('Failed to create Google Task:', error);
+      // Don't fail the whole operation if Google Tasks fails
+    }
+
+    // Log activity
+    try {
+      const activityData: any = {
         candidate_id: candidateId,
         activity_type: 'task_created',
         description: `Task created: ${title}`,
-        created_by: assignedTo,
-        created_by_name: assignedToName,
-      });
+        created_by_name: assignedToName || 'Recruiter',
+      };
+      
+      // Only add created_by if we have a valid UUID
+      if (assignedTo && assignedTo.length > 0) {
+        activityData.created_by = assignedTo;
+      }
+      
+      const { error: activityError } = await supabase.from('activities').insert(activityData);
+      
+      if (activityError) {
+        console.error('Failed to log activity:', activityError);
+      } else {
+        console.log('Activity logged successfully for task:', title);
+      }
+    } catch (error) {
+      console.error('Error logging activity:', error);
     }
 
     return data;

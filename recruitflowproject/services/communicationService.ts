@@ -48,40 +48,49 @@ export interface Email {
 export const communicationService = {
   // ===== PHONE CALLS =====
   
-  // Make a phone call (opens native dialer)
+  // Make a phone call via Twilio Edge Function
   async makeCall(phoneNumber: string, candidateId: string, userId: string, userName: string, candidateName?: string): Promise<void> {
-    const url = `tel:${phoneNumber}`;
-    const canOpen = await Linking.canOpenURL(url);
-    
-    if (canOpen) {
-      await Linking.openURL(url);
-    } else {
-      // Simulator or device without phone capability
-      console.log('Phone call not available on this device (simulator). Logging activity only.');
-    }
-    
-    // Always log the call attempt in database (even in simulator for testing)
-    await supabase.from('calls').insert({
-      candidate_id: candidateId,
-      call_type: 'outbound',
-      phone_number: phoneNumber,
-      status: canOpen ? 'initiated' : 'simulated',
-      created_by: userId || null,
-      created_by_name: userName,
-    });
+    try {
+      // Call Twilio via Edge Function
+      const { data, error } = await supabase.functions.invoke('make-call', {
+        body: {
+          to: phoneNumber,
+          candidateId,
+          candidateName,
+          userId,
+          userName,
+        },
+      });
 
-    // Log activity with candidate name
-    const description = candidateName 
-      ? `Called ${candidateName} at ${phoneNumber}`
-      : `Called ${phoneNumber}`;
-    
-    await supabase.from('activities').insert({
-      candidate_id: candidateId,
-      activity_type: 'call',
-      description,
-      created_by: userId || null,
-      created_by_name: userName,
-    });
+      if (error) throw error;
+
+      // Log the call in database
+      await supabase.from('calls').insert({
+        candidate_id: candidateId,
+        call_type: 'outbound',
+        phone_number: phoneNumber,
+        status: 'initiated',
+        twilio_call_sid: data?.callSid,
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+
+      // Log activity with candidate name
+      const description = candidateName 
+        ? `Called ${candidateName} at ${phoneNumber} via Twilio`
+        : `Called ${phoneNumber} via Twilio`;
+      
+      await supabase.from('activities').insert({
+        candidate_id: candidateId,
+        activity_type: 'call',
+        description,
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+    } catch (error) {
+      console.error('Twilio call failed:', error);
+      throw new Error('Failed to initiate call via Twilio');
+    }
   },
 
   // Get call history for a candidate
@@ -126,45 +135,51 @@ export const communicationService = {
 
   // ===== SMS MESSAGES =====
 
-  // Send SMS (opens native SMS app)
+  // Send SMS via Twilio Edge Function
   async sendSMS(phoneNumber: string, message: string, candidateId: string, userId: string, userName: string, candidateName?: string): Promise<void> {
-    const url = Platform.select({
-      ios: `sms:${phoneNumber}&body=${encodeURIComponent(message)}`,
-      android: `sms:${phoneNumber}?body=${encodeURIComponent(message)}`,
-      default: `sms:${phoneNumber}`,
-    });
+    try {
+      // Send SMS via Twilio Edge Function
+      const { data, error } = await supabase.functions.invoke('send-sms', {
+        body: {
+          to: phoneNumber,
+          message,
+          candidateId,
+          candidateName,
+          userId,
+          userName,
+        },
+      });
 
-    const canOpen = await Linking.canOpenURL(url!);
-    
-    if (canOpen) {
-      await Linking.openURL(url!);
-    } else {
-      console.log('SMS not available on this device (simulator). Logging activity only.');
+      if (error) throw error;
+
+      // Log the SMS in database
+      await supabase.from('sms_messages').insert({
+        candidate_id: candidateId,
+        direction: 'outbound',
+        phone_number: phoneNumber,
+        message_body: message,
+        status: 'sent',
+        twilio_message_sid: data?.messageSid,
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+
+      // Log activity with candidate name
+      const description = candidateName 
+        ? `SMS sent to ${candidateName} via Twilio`
+        : `SMS sent to ${phoneNumber} via Twilio`;
+      
+      await supabase.from('activities').insert({
+        candidate_id: candidateId,
+        activity_type: 'sms',
+        description,
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+    } catch (error) {
+      console.error('Twilio SMS failed:', error);
+      throw new Error('Failed to send SMS via Twilio');
     }
-    
-    // Always log the SMS in database (even in simulator for testing)
-    await supabase.from('sms_messages').insert({
-      candidate_id: candidateId,
-      direction: 'outbound',
-      phone_number: phoneNumber,
-      message_body: message,
-      status: canOpen ? 'sent' : 'simulated',
-      created_by: userId || null,
-      created_by_name: userName,
-    });
-
-    // Log activity with candidate name
-    const description = candidateName 
-      ? `SMS sent to ${candidateName}`
-      : `SMS sent to ${phoneNumber}`;
-    
-    await supabase.from('activities').insert({
-      candidate_id: candidateId,
-      activity_type: 'sms',
-      description,
-      created_by: userId || null,
-      created_by_name: userName,
-    });
   },
 
   // Get SMS history for a candidate
@@ -181,7 +196,7 @@ export const communicationService = {
 
   // ===== EMAIL =====
 
-  // Send email (opens native email composer)
+  // Send email via SendGrid Edge Function
   async sendEmail(
     toEmail: string,
     subject: string,
@@ -191,25 +206,28 @@ export const communicationService = {
     userName: string,
     candidateName?: string
   ): Promise<void> {
-    const isAvailable = await MailComposer.isAvailableAsync();
-    
-    if (!isAvailable) {
-      throw new Error('Email is not available on this device');
-    }
+    try {
+      // Send email via Edge Function
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: toEmail,
+          subject,
+          body,
+          candidateId,
+          candidateName,
+          userId,
+          userName,
+        },
+      });
 
-    const result = await MailComposer.composeAsync({
-      recipients: [toEmail],
-      subject,
-      body,
-    });
+      if (error) throw error;
 
-    if (result.status === 'sent') {
       // Log the email in database
       await supabase.from('emails').insert({
         candidate_id: candidateId,
         direction: 'outbound',
         to_email: toEmail,
-        from_email: userName, // You might want to use actual email
+        from_email: 'myexporeactnative@gmail.com',
         subject,
         body,
         status: 'sent',
@@ -229,6 +247,9 @@ export const communicationService = {
         created_by: userId || null,
         created_by_name: userName,
       });
+    } catch (error) {
+      console.error('Email send failed:', error);
+      throw new Error('Failed to send email');
     }
   },
 

@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 60,
-    paddingBottom: 30,
+    paddingBottom: 40,
     paddingHorizontal: 20,
   },
   headerContent: {
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   logoTitleContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   logo: {
     width: 250,

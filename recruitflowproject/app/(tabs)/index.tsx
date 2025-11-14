@@ -112,6 +112,8 @@ export default function CandidatesScreen() {
         renderItem={({ item }) => <CandidateCard candidate={item} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={false}
+        nestedScrollEnabled={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -240,9 +242,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: 12,
     gap: 12,
+    marginBottom: 16,
   },
   searchInput: {
     flex: 1,

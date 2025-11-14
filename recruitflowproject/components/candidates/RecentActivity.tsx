@@ -147,6 +147,8 @@ export function RecentActivity() {
       renderItem={renderActivity}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
+      scrollEnabled={false}
+      nestedScrollEnabled={true}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}

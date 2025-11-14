@@ -226,21 +226,33 @@ export function ScheduleInterviewModal({
           </TouchableOpacity>
 
           {showStartPicker && (
-            <DateTimePicker
-              value={startDate}
-              mode="datetime"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, date) => {
-                setShowStartPicker(Platform.OS === 'ios');
-                if (date) {
-                  setStartDate(date);
-                  // Auto-adjust end time to be 1 hour after start
-                  if (date >= endDate) {
-                    setEndDate(new Date(date.getTime() + 60 * 60 * 1000));
+            <View>
+              <DateTimePicker
+                value={startDate}
+                mode="datetime"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, date) => {
+                  if (Platform.OS === 'android') {
+                    setShowStartPicker(false);
                   }
-                }
-              }}
-            />
+                  if (date) {
+                    setStartDate(date);
+                    // Auto-adjust end time to be 1 hour after start
+                    if (date >= endDate) {
+                      setEndDate(new Date(date.getTime() + 60 * 60 * 1000));
+                    }
+                  }
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.doneButton, { backgroundColor: colors.primary }]}
+                  onPress={() => setShowStartPicker(false)}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
           {/* End Time */}
@@ -254,16 +266,28 @@ export function ScheduleInterviewModal({
           </TouchableOpacity>
 
           {showEndPicker && (
-            <DateTimePicker
-              value={endDate}
-              mode="datetime"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              minimumDate={startDate}
-              onChange={(event, date) => {
-                setShowEndPicker(Platform.OS === 'ios');
-                if (date) setEndDate(date);
-              }}
-            />
+            <View>
+              <DateTimePicker
+                value={endDate}
+                mode="datetime"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={startDate}
+                onChange={(event, date) => {
+                  if (Platform.OS === 'android') {
+                    setShowEndPicker(false);
+                  }
+                  if (date) setEndDate(date);
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.doneButton, { backgroundColor: colors.primary }]}
+                  onPress={() => setShowEndPicker(false)}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
           {/* Location */}
@@ -376,5 +400,16 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: 32,
     marginBottom: 40,
+  },
+  doneButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  doneButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -15,6 +15,7 @@ import { CreateTaskModal } from '@/components/candidates/CreateTaskModal';
 import { StatusChangeModal } from '@/components/candidates/StatusChangeModal';
 import { candidatesService } from '@/services/candidatesService';
 import { communicationService } from '@/services/communicationService';
+import { supabase } from '@/lib/supabase';
 import { Alert } from 'react-native';
 
 export default function CandidateProfileScreen() {
@@ -25,6 +26,7 @@ export default function CandidateProfileScreen() {
   
   const [candidate, setCandidate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -34,7 +36,13 @@ export default function CandidateProfileScreen() {
 
   useEffect(() => {
     loadCandidate();
+    loadCurrentUser();
   }, [id]);
+
+  const loadCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
+  };
 
   const loadCandidate = async () => {
     try {
@@ -200,8 +208,8 @@ export default function CandidateProfileScreen() {
         }}
         candidateId={candidate.id}
         candidateName={`${candidate.first_name} ${candidate.last_name}`}
-        userId=""
-        userName="Recruiter"
+        userId={currentUser?.id || ''}
+        userName={currentUser?.email || 'Recruiter'}
         editingTask={editingTask}
       />
 
