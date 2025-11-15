@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { Colors, BrandColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { GoogleConnectButton } from '@/components/auth/GoogleConnectButton';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -153,6 +154,22 @@ export default function LoginScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textMuted }]}>OR</Text>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Google Sign In */}
+          <GoogleConnectButton
+            buttonText="Sign in with Google"
+            onSuccess={(userInfo) => {
+              console.log('Google sign in success:', userInfo);
+              router.replace('/(tabs)' as any);
+            }}
+          />
+
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
             <Text style={[styles.signupText, { color: colors.textSecondary }]}>
@@ -204,6 +221,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 40,
+    paddingBottom: 40,
   },
   formHeader: {
     marginBottom: 32,
@@ -248,7 +266,7 @@ const styles = StyleSheet.create({
   loginButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   loginButtonGradient: {
     flexDirection: 'row',
@@ -262,10 +280,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+    gap: 12,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20,
   },
   signupText: {
     fontSize: 14,

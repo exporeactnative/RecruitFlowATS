@@ -54,6 +54,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="candidate/[id]" />
       <Stack.Screen name="add-candidate" />
+      <Stack.Screen name="settings" />
       <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: 'Modal' }} />
     </Stack>
   );

@@ -62,9 +62,17 @@ export const communicationService = {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge Function error:', error);
+        throw new Error(`Twilio Edge Function failed: ${error.message || 'Unknown error'}`);
+      }
 
-      // Log the call in database
+      // Check if the Edge Function actually succeeded
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Twilio call failed - no response from server');
+      }
+
+      // Log the call in database only if successful
       await supabase.from('calls').insert({
         candidate_id: candidateId,
         call_type: 'outbound',
@@ -87,9 +95,11 @@ export const communicationService = {
         created_by: userId || null,
         created_by_name: userName,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Twilio call failed:', error);
-      throw new Error('Failed to initiate call via Twilio');
+      // Provide specific error message
+      const errorMessage = error.message || 'Failed to initiate call via Twilio';
+      throw new Error(errorMessage);
     }
   },
 
@@ -150,9 +160,17 @@ export const communicationService = {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge Function error:', error);
+        throw new Error(`Twilio Edge Function failed: ${error.message || 'Unknown error'}`);
+      }
 
-      // Log the SMS in database
+      // Check if the Edge Function actually succeeded
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'SMS send failed - no response from server');
+      }
+
+      // Log the SMS in database only if successful
       await supabase.from('sms_messages').insert({
         candidate_id: candidateId,
         direction: 'outbound',
@@ -176,9 +194,11 @@ export const communicationService = {
         created_by: userId || null,
         created_by_name: userName,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Twilio SMS failed:', error);
-      throw new Error('Failed to send SMS via Twilio');
+      // Provide specific error message
+      const errorMessage = error.message || 'Failed to send SMS via Twilio';
+      throw new Error(errorMessage);
     }
   },
 
@@ -196,7 +216,7 @@ export const communicationService = {
 
   // ===== EMAIL =====
 
-  // Send email via SendGrid Edge Function
+  // Send email via Gmail Edge Function
   async sendEmail(
     toEmail: string,
     subject: string,
@@ -207,7 +227,7 @@ export const communicationService = {
     candidateName?: string
   ): Promise<void> {
     try {
-      // Send email via Edge Function
+      // Send email via Edge Function (Gmail API)
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           to: toEmail,
@@ -220,14 +240,22 @@ export const communicationService = {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge Function error:', error);
+        throw new Error(`Gmail Edge Function failed: ${error.message || 'Unknown error'}`);
+      }
 
-      // Log the email in database
+      // Check if the Edge Function actually succeeded
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Email send failed - no response from server');
+      }
+
+      // Log the email in database only if successful
       await supabase.from('emails').insert({
         candidate_id: candidateId,
         direction: 'outbound',
         to_email: toEmail,
-        from_email: 'myexporeactnative@gmail.com',
+        from_email: 'admin@bjsllc.com',
         subject,
         body,
         status: 'sent',
@@ -247,9 +275,11 @@ export const communicationService = {
         created_by: userId || null,
         created_by_name: userName,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Email send failed:', error);
-      throw new Error('Failed to send email');
+      // Provide specific error message
+      const errorMessage = error.message || 'Failed to send email via Gmail';
+      throw new Error(errorMessage);
     }
   },
 

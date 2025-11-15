@@ -23,30 +23,7 @@ export default function HomeScreen() {
   const recruiterRole = user?.user_metadata?.role || "Recruiter";
 
   const handleSettings = () => {
-    Alert.alert(
-      'Settings',
-      'Choose an option',
-      [
-        {
-          text: 'Reset & View Onboarding',
-          onPress: async () => {
-            // Reset onboarding flag
-            await supabase.auth.updateUser({
-              data: { onboarding_completed: false },
-            });
-            router.push('/onboarding' as any);
-          },
-        },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    router.push('/settings' as any);
   };
 
   return (

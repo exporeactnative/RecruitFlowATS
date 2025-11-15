@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { Colors, BrandColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { GoogleConnectButton } from '@/components/auth/GoogleConnectButton';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -227,6 +228,22 @@ export default function SignUpScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textMuted }]}>OR</Text>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Google Sign Up */}
+          <GoogleConnectButton
+            buttonText="Sign up with Google"
+            onSuccess={(userInfo) => {
+              console.log('Google sign up success:', userInfo);
+              router.replace('/onboarding' as any);
+            }}
+          />
+
           {/* Terms */}
           <Text style={[styles.termsText, { color: colors.textMuted }]}>
             By signing up, you agree to our{' '}
@@ -240,7 +257,7 @@ export default function SignUpScreen() {
             <Text style={[styles.loginText, { color: colors.textSecondary }]}>
               Already have an account?{' '}
             </Text>
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity onPress={() => router.push('/auth/login')}>
               <Text style={[styles.loginLink, { color: colors.primary }]}>Sign In</Text>
             </TouchableOpacity>
           </View>
@@ -292,6 +309,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
+    paddingBottom: 40,
   },
   formHeader: {
     marginBottom: 28,
@@ -329,7 +347,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     marginTop: 8,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   signupButtonGradient: {
     flexDirection: 'row',
@@ -343,17 +361,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+    gap: 12,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   termsText: {
     fontSize: 12,
     textAlign: 'center',
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 16,
     lineHeight: 18,
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
   },
   loginText: {
     fontSize: 14,
