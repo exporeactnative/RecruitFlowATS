@@ -2,8 +2,8 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import * as SecureStore from 'expo-secure-store';
 import { makeRedirectUri } from 'expo-auth-session';
+import Constants from 'expo-constants';
 
-// Complete the auth session
 WebBrowser.maybeCompleteAuthSession();
 
 // Define the scopes (permissions) required for RecruitFlow
@@ -42,11 +42,11 @@ class GoogleAuthService {
   private clientId: string;
 
   constructor() {
-    // Get from environment variables
-    this.clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
+    // Get from environment variables or app.json extra config
+    this.clientId = Constants.expoConfig?.extra?.googleClientId || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
     
     if (!this.clientId) {
-      console.warn('⚠️ Google Client ID not found in environment variables');
+      console.warn('⚠️ Google Client ID not found in environment variables or app config');
     }
   }
 

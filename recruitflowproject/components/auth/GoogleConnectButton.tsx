@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
 import { googleAuthService, GoogleUserInfo } from '@/services/googleAuthService';
 import { BrandColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
@@ -22,7 +23,7 @@ export function GoogleConnectButton({
   const [userInfo, setUserInfo] = useState<GoogleUserInfo | null>(null);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    clientId: Constants.expoConfig?.extra?.googleClientId || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     scopes: [
       'email',
       'profile',

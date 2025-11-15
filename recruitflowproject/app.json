@@ -56,7 +56,8 @@
         "projectId": "3c29c5cc-ccac-40eb-a41a-65578909e8c5"
       },
       "supabaseUrl": "https://khnranbpqbyszakbfavb.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtobnJhbmJwcWJ5c3pha2JmYXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNDIwNTIsImV4cCI6MjA3ODYxODA1Mn0.atVT-Pm1aKc0LXDSCJ5j0KLYZo4dG_Jh6sbfZqGMOdc"
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtobnJhbmJwcWJ5c3pha2JmYXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNDIwNTIsImV4cCI6MjA3ODYxODA1Mn0.atVT-Pm1aKc0LXDSCJ5j0KLYZo4dG_Jh6sbfZqGMOdc",
+      "googleClientId": "612138990798-eo0q5rfjlsfduot9ep72hnumsvs37f0f.apps.googleusercontent.com"
     }
   }
 }
