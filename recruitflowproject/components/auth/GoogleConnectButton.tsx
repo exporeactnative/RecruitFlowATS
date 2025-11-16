@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
 import Constants from 'expo-constants';
 import { googleAuthService, GoogleUserInfo } from '@/services/googleAuthService';
 import { BrandColors } from '@/constants/theme';
@@ -32,12 +33,6 @@ export function GoogleConnectButton({
       'https://www.googleapis.com/auth/gmail.send',
       'https://www.googleapis.com/auth/gmail.readonly',
     ],
-    responseType: 'code',
-    usePKCE: true,
-    extraParams: {
-      access_type: 'offline',
-      prompt: 'consent',
-    },
   });
 
   // Check if already connected
