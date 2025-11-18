@@ -77,6 +77,13 @@ class GoogleAuthService {
     try {
       const tokenEndpoint = 'https://oauth2.googleapis.com/token';
       
+      // Use the same redirect URI that expo-auth-session uses
+      const redirectUri = makeRedirectUri();
+      
+      console.log('🔄 Exchanging code for tokens...');
+      console.log('📍 Redirect URI:', redirectUri);
+      console.log('🔑 Client ID:', this.clientId);
+      
       const response = await fetch(tokenEndpoint, {
         method: 'POST',
         headers: {
@@ -85,19 +92,19 @@ class GoogleAuthService {
         body: new URLSearchParams({
           code,
           client_id: this.clientId,
-          redirect_uri: makeRedirectUri({
-            scheme: 'recruitflow',
-            path: 'auth/google',
-          }),
+          redirect_uri: redirectUri,
           grant_type: 'authorization_code',
         }).toString(),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to exchange code for tokens');
+        const errorData = await response.json();
+        console.error('❌ Token exchange failed:', errorData);
+        throw new Error(`Failed to exchange code for tokens: ${errorData.error || response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('✅ Token exchange successful');
       
       const tokens: GoogleTokens = {
         accessToken: data.access_token,
