@@ -160,6 +160,18 @@ export const candidatesService = {
     return data;
   },
 
+  // Mark candidate as viewed
+  async markAsViewed(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('candidates')
+      .update({ viewed: true })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to mark candidate as viewed:', error);
+    }
+  },
+
   // Delete candidate
   async deleteCandidate(id: string): Promise<void> {
     const { error } = await supabase.from('candidates').delete().eq('id', id);

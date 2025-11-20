@@ -10,6 +10,8 @@ import { ScheduleInterviewModal } from '@/components/candidates/ScheduleIntervie
 import { calendarService, CalendarEvent } from '@/services/calendarService';
 
 export default function ScheduleScreen() {
+  console.log('🔵 ScheduleScreen component mounted');
+  
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -20,17 +22,65 @@ export default function ScheduleScreen() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
   useEffect(() => {
+    console.log('🟢 useEffect triggered - calling loadEvents');
+    
+    // Load events immediately
     loadEvents();
+    
+    // Subscribe to real-time updates
+    try {
+      const unsubscribe = calendarService.subscribeToEvents(
+        '', // candidateId - empty string for all events
+        (event: CalendarEvent) => {
+          console.log('🔔 Real-time event update:', event);
+          setEvents((prevEvents) => {
+            // Check if event already exists
+            const existingIndex = prevEvents.findIndex((e) => e.id === event.id);
+            
+            if (existingIndex >= 0) {
+              // Update existing event
+              const updated = [...prevEvents];
+              updated[existingIndex] = event;
+              return updated.sort((a, b) => 
+                new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+              );
+            } else {
+              // Add new event
+              return [...prevEvents, event].sort((a, b) => 
+                new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+              );
+            }
+          });
+        },
+        (eventId: string) => {
+          console.log('🗑️ Real-time event delete:', eventId);
+          setEvents((prevEvents) => prevEvents.filter((e) => e.id !== eventId));
+        }
+      );
+
+      return () => {
+        console.log('🔴 Cleaning up subscription');
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error('❌ Error setting up subscription:', error);
+    }
   }, []);
 
   const loadEvents = async () => {
     try {
       setLoading(true);
       const data = await calendarService.getAllUpcomingEvents();
-      console.log('Loaded events:', data.length);
-      setEvents(data);
+      console.log('📅 Loaded events:', data.length);
+      console.log('📅 Events data:', JSON.stringify(data, null, 2));
+      // Sort by start time (newest first)
+      const sorted = data.sort((a, b) => 
+        new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+      );
+      setEvents(sorted);
     } catch (error) {
-      console.error('Failed to load events:', error);
+      console.error('❌ Failed to load events:', error);
+      Alert.alert('Error', 'Failed to load scheduled interviews. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -50,6 +100,63 @@ export default function ScheduleScreen() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Check if today
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    }
+    // Check if tomorrow
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    }
+    // Otherwise return formatted date
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getDuration = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationMin = Math.round(durationMs / 60000);
+    
+    if (durationMin < 60) {
+      return `${durationMin} min`;
+    }
+    const hours = Math.floor(durationMin / 60);
+    const minutes = durationMin % 60;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  };
+
+  // Group events by date
+  const groupEventsByDate = () => {
+    const grouped: { [key: string]: CalendarEvent[] } = {};
+    events.forEach((event) => {
+      const dateKey = new Date(event.start_time).toDateString();
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(event);
+    });
+    return grouped;
   };
 
   const getEventIcon = (type: CalendarEvent['event_type']) => {
@@ -91,50 +198,95 @@ export default function ScheduleScreen() {
     setShowEditModal(true);
   };
 
-  const renderEvent = ({ item }: { item: CalendarEvent }) => (
-    <Card style={styles.eventCard}>
-      <View style={styles.cardHeader}>
-        <View style={styles.eventHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.primaryLight }]}>
-            <Ionicons name={getEventIcon(item.event_type)} size={24} color={colors.primary} />
-          </View>
-          <View style={styles.eventInfo}>
-            <Text style={[styles.eventTitle, { color: colors.text }]}>{item.title}</Text>
-            <Text style={[styles.eventTime, { color: colors.textSecondary }]}>
-              {formatDateTime(item.start_time)}
-            </Text>
-            {item.location && (
-              <View style={styles.locationRow}>
-                <Ionicons name="location-outline" size={14} color={colors.textMuted} />
-                <Text style={[styles.eventLocation, { color: colors.textMuted }]}>
-                  {item.location}
+  const renderDateHeader = (dateString: string) => {
+    const date = formatDate(dateString);
+    return (
+      <View style={styles.dateHeader}>
+        <Text style={[styles.dateHeaderText, { color: colors.text }]}>{date}</Text>
+        <View style={[styles.dateHeaderLine, { backgroundColor: colors.border }]} />
+      </View>
+    );
+  };
+
+  const renderEvent = ({ item, index }: { item: CalendarEvent; index: number }) => {
+    // Show date header if first event or different date from previous
+    const showDateHeader = index === 0 || 
+      new Date(events[index - 1].start_time).toDateString() !== new Date(item.start_time).toDateString();
+
+    return (
+      <>
+        {showDateHeader && renderDateHeader(item.start_time)}
+        <Card style={styles.eventCard}>
+          <View style={styles.eventHeader}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primaryLight }]}>
+              <Ionicons name={getEventIcon(item.event_type)} size={24} color={colors.primary} />
+            </View>
+            <View style={styles.eventInfo}>
+              <View style={styles.titleRow}>
+                <Text style={[styles.eventTitle, { color: colors.text }]} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <Badge 
+                  label={item.event_type.replace('_', ' ')} 
+                  variant="primary" 
+                  size="small" 
+                />
+              </View>
+              
+              <View style={styles.timeRow}>
+                <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                <Text style={[styles.eventTime, { color: colors.textSecondary }]}>
+                  {formatTime(item.start_time)} - {formatTime(item.end_time)}
+                </Text>
+                <Text style={[styles.duration, { color: colors.textMuted }]}>
+                  ({getDuration(item.start_time, item.end_time)})
                 </Text>
               </View>
-            )}
+
+              {item.location && (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                  <Text style={[styles.eventLocation, { color: colors.textMuted }]} numberOfLines={1}>
+                    {item.location}
+                  </Text>
+                </View>
+              )}
+
+              {item.meeting_link && (
+                <View style={styles.locationRow}>
+                  <Ionicons name="videocam-outline" size={14} color={colors.primary} />
+                  <Text style={[styles.meetingLink, { color: colors.primary }]} numberOfLines={1}>
+                    Video call
+                  </Text>
+                </View>
+              )}
+
+              {item.description && (
+                <Text style={[styles.description, { color: colors.textMuted }]} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              )}
+            </View>
           </View>
-          <Badge 
-            label={item.event_type.replace('_', ' ')} 
-            variant="primary" 
-            size="small" 
-          />
-        </View>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            onPress={() => handleEditEvent(item)}
-            style={styles.actionButton}
-          >
-            <Ionicons name="create-outline" size={20} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => handleDeleteEvent(item.id)}
-            style={styles.actionButton}
-          >
-            <Ionicons name="trash-outline" size={20} color={colors.error} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Card>
-  );
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              onPress={() => handleEditEvent(item)}
+              style={[styles.actionButton, { backgroundColor: colors.primaryLight }]}
+            >
+              <Ionicons name="create-outline" size={18} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => handleDeleteEvent(item.id)}
+              style={[styles.actionButton, { backgroundColor: colorScheme === 'dark' ? '#3d1a1a' : '#fee2e2' }]}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+        </Card>
+      </>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -281,27 +433,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+    gap: 12,
+  },
+  dateHeaderText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  dateHeaderLine: {
+    flex: 1,
+    height: 1,
+  },
   eventCard: {
     marginBottom: 12,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   eventHeader: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+    marginBottom: 12,
   },
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginLeft: 8,
+    justifyContent: 'flex-end',
   },
   actionButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 8,
   },
   iconContainer: {
     width: 48,
@@ -313,22 +476,47 @@ const styles = StyleSheet.create({
   eventInfo: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    gap: 8,
+  },
   eventTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    flex: 1,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
   },
   eventTime: {
     fontSize: 14,
-    marginBottom: 4,
+  },
+  duration: {
+    fontSize: 12,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 2,
+    marginTop: 4,
   },
   eventLocation: {
     fontSize: 13,
+    flex: 1,
+  },
+  meetingLink: {
+    fontSize: 13,
+    flex: 1,
+  },
+  description: {
+    fontSize: 13,
+    marginTop: 8,
+    lineHeight: 18,
   },
 });

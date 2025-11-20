@@ -1,18 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
+import { googleAuthService, GoogleUserInfo } from '@/services/googleAuthService';
 import { BrandColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
-
-WebBrowser.maybeCompleteAuthSession();
-
-interface GoogleUserInfo {
-  email: string;
-  name: string;
-  picture?: string;
-}
 
 interface GoogleConnectButtonProps {
   onSuccess?: (userInfo: GoogleUserInfo) => void;
@@ -29,20 +23,90 @@ export function GoogleConnectButton({
   const [isConnected, setIsConnected] = useState(false);
   const [userInfo, setUserInfo] = useState<GoogleUserInfo | null>(null);
 
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: Constants.expoConfig?.extra?.googleClientId || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    scopes: [
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/tasks',
+      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/gmail.readonly',
+    ],
+  });
+
   // Check if already connected
   useEffect(() => {
     checkConnection();
   }, []);
 
+  // Handle OAuth response
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { code } = response.params;
+      handleAuthSuccess(code);
+    } else if (response?.type === 'error') {
+      Alert.alert('Authentication Error', 'Failed to connect to Google');
+      setLoading(false);
+    }
+  }, [response]);
+
   const checkConnection = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user && user.app_metadata.provider === 'google') {
+    const isAuth = await googleAuthService.isAuthenticated();
+    setIsConnected(isAuth);
+    
+    if (isAuth) {
+      const info = await googleAuthService.getStoredUserInfo();
+      setUserInfo(info);
+    }
+  };
+
+  const handleAuthSuccess = async (code: string) => {
+    try {
+      setLoading(true);
+
+      // Exchange code for tokens
+      const tokens = await googleAuthService.exchangeCodeForTokens(code);
+      
+      if (!tokens) {
+        throw new Error('Failed to get tokens');
+      }
+
+      // Get user info
+      const info = await googleAuthService.getUserInfo(tokens.accessToken);
+      
+      if (!info) {
+        throw new Error('Failed to get user info');
+      }
+
+      setUserInfo(info);
       setIsConnected(true);
-      setUserInfo({
-        email: user.email || '',
-        name: user.user_metadata.full_name || user.user_metadata.name || '',
-        picture: user.user_metadata.avatar_url || user.user_metadata.picture,
-      });
+
+      // Store Google connection in Supabase user metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.auth.updateUser({
+          data: {
+            google_connected: true,
+            google_email: info.email,
+            google_name: info.name,
+          },
+        });
+      }
+
+      Alert.alert(
+        'Success!',
+        `Connected to Google as ${info.name}`,
+        [{ text: 'OK' }]
+      );
+
+      onSuccess?.(info);
+    } catch (error) {
+      console.error('Error handling auth success:', error);
+      Alert.alert('Error', 'Failed to complete Google authentication');
+      onError?.(error as Error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,58 +130,30 @@ export function GoogleConnectButton({
 
     setLoading(true);
     try {
-      const redirectUrl = makeRedirectUri({
-        scheme: 'recruitflowproject',
-        path: 'auth/callback',
-      });
-
-      console.log('🔄 Starting Google OAuth with Supabase...');
-      console.log('📍 Redirect URL:', redirectUrl);
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          scopes: 'email profile https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly',
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('✅ OAuth initiated successfully');
-      
-      // The auth session will be handled by the deep link
-      // Check connection after a delay
-      setTimeout(async () => {
-        await checkConnection();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const info: GoogleUserInfo = {
-            email: user.email || '',
-            name: user.user_metadata.full_name || user.user_metadata.name || '',
-            picture: user.user_metadata.avatar_url || user.user_metadata.picture,
-          };
-          setUserInfo(info);
-          setIsConnected(true);
-          onSuccess?.(info);
-          Alert.alert('Success!', `Signed in as ${info.name}`);
-        }
-        setLoading(false);
-      }, 2000);
+      await promptAsync();
     } catch (error) {
-      console.error('❌ Error with Google OAuth:', error);
+      console.error('Error prompting auth:', error);
       Alert.alert('Error', 'Failed to start Google authentication');
-      onError?.(error as Error);
       setLoading(false);
     }
   };
 
   const handleDisconnect = async () => {
     try {
-      await supabase.auth.signOut();
+      await googleAuthService.signOut();
       
+      // Update Supabase user metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.auth.updateUser({
+          data: {
+            google_connected: false,
+            google_email: null,
+            google_name: null,
+          },
+        });
+      }
+
       setIsConnected(false);
       setUserInfo(null);
       
@@ -136,7 +172,7 @@ export function GoogleConnectButton({
         loading && styles.buttonDisabled,
       ]}
       onPress={handleConnect}
-      disabled={loading}
+      disabled={loading || !request}
     >
       {loading ? (
         <ActivityIndicator color={BrandColors.white} />

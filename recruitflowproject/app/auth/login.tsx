@@ -5,8 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -47,264 +45,257 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={[styles.container, { backgroundColor: BrandColors.teal[500] }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header with Logo */}
-        <LinearGradient
-          colors={[BrandColors.teal[500], BrandColors.teal[600]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <Image
-            source={require('@/assets/images/app-icon.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.headerTitle}>RecruitFlow</Text>
-          <Text style={styles.headerSubtitle}>Modern Recruitment Made Simple</Text>
-        </LinearGradient>
+        {/* Centered Card Container */}
+        <View style={styles.centerContainer}>
+          {/* Logo and Branding */}
+          <View style={styles.brandingContainer}>
+            {/* 3D Logo */}
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('@/assets/images/recruitflowlogo-removebg-preview.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={[styles.appName, { color: BrandColors.white }]}></Text>
+            <Text style={[styles.tagline, { color: BrandColors.teal[50] }]}>Where Talent Meets Opportunity</Text>
+          </View>
 
-        {/* Login Form */}
-        <View style={[styles.formContainer, { backgroundColor: colors.background }]}>
-          <View style={styles.formHeader}>
-            <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Sign in to continue to your dashboard
+          {/* Welcome Text */}
+          <View style={styles.welcomeContainer}>
+            <Text style={[styles.welcomeTitle, { color: BrandColors.white }]}>Welcome Back</Text>
+            <Text style={[styles.welcomeSubtitle, { color: BrandColors.teal[50] }]}>
+              Continue Managing Your Talent Pipeline
             </Text>
           </View>
 
-          {/* Email Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-              <Ionicons name="mail-outline" size={20} color={colors.textMuted} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="you@company.com"
-                placeholderTextColor={colors.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-              />
-            </View>
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Enter your password"
-                placeholderTextColor={colors.textMuted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color={colors.textMuted}
+          {/* Login Form Card */}
+          <View style={[styles.formCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+            {/* Email Input */}
+            <View style={styles.inputGroup}>
+              <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                <Ionicons name="mail-outline" size={22} color={colors.textMuted} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Email Address"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
                 />
-              </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          {/* Forgot Password */}
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
-              Forgot password?
-            </Text>
-          </TouchableOpacity>
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                <Ionicons name="lock-closed-outline" size={22} color={colors.textMuted} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Password"
+                  placeholderTextColor={colors.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={22}
+                    color={colors.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          {/* Login Button */}
-          <TouchableOpacity
-            style={[styles.loginButton, { opacity: loading ? 0.7 : 1 }]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            <LinearGradient
-              colors={[BrandColors.teal[500], BrandColors.teal[600]]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButtonGradient}
+            {/* Login Button */}
+            <TouchableOpacity
+              style={[styles.loginButton, { opacity: loading ? 0.7 : 1, backgroundColor: BrandColors.orange[500] }]}
+              onPress={handleLogin}
+              disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color={BrandColors.white} />
               ) : (
-                <>
-                  <Text style={styles.loginButtonText}>Sign In</Text>
-                  <Ionicons name="arrow-forward" size={20} color={BrandColors.white} />
-                </>
+                <Text style={styles.loginButtonText}>Sign In</Text>
               )}
-            </LinearGradient>
-          </TouchableOpacity>
+            </TouchableOpacity>
 
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <Text style={[styles.dividerText, { color: colors.textMuted }]}>OR</Text>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: colors.textMuted }]}>OR</Text>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            </View>
+
+            {/* Google Sign In */}
+            <GoogleConnectButton
+              buttonText="Sign in with Google"
+              onSuccess={(userInfo) => {
+                console.log('Google sign in success:', userInfo);
+                router.replace('/(tabs)/home' as any);
+              }}
+            />
           </View>
-
-          {/* Google Sign In */}
-          <GoogleConnectButton
-            buttonText="Sign in with Google"
-            onSuccess={(userInfo) => {
-              console.log('Google sign in success:', userInfo);
-              router.replace('/(tabs)' as any);
-            }}
-          />
 
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
             <Text style={[styles.signupText, { color: colors.textSecondary }]}>
-              Don't have an account?{' '}
+              New to RecruitFlow?{' '}
             </Text>
             <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-              <Text style={[styles.signupLink, { color: colors.primary }]}>Sign Up</Text>
+              <Text style={[styles.signupLink, { color: BrandColors.orange[500] }]}>Create an Account</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BrandColors.white,
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 40,
   },
-  header: {
-    paddingTop: 80,
-    paddingBottom: 60,
+  centerContainer: {
     paddingHorizontal: 24,
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  brandingContainer: {
     alignItems: 'center',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    marginBottom: 48,
+  },
+  logoContainer: {
+    marginBottom: -150,
+    shadowColor: BrandColors.teal[500],
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  logoCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 16,
-    borderRadius: 20,
+    width: 260,
+    height: 260,
+    borderRadius: 45,
+    marginBottom: 45,
   },
-  headerTitle: {
+  appName: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  welcomeContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  welcomeTitle: {
     fontSize: 32,
     fontWeight: '700',
-    color: BrandColors.white,
     marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: BrandColors.teal[50],
+  welcomeSubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
   },
-  formContainer: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 40,
-  },
-  formHeader: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
+  formCard: {
+    borderRadius: 24,
+    padding: 32,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 12,
+    marginBottom: 24,
   },
   inputGroup: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    gap: 14,
   },
   input: {
     flex: 1,
     fontSize: 16,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   loginButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  loginButtonGradient: {
-    flexDirection: 'row',
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
+    marginTop: 12,
+    shadowColor: BrandColors.orange[500],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   loginButtonText: {
     color: BrandColors.white,
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  signupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  signupText: {
+    fontSize: 15,
+  },
+  signupLink: {
+    fontSize: 15,
     fontWeight: '700',
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
-    gap: 12,
+    marginVertical: 24,
   },
   divider: {
     flex: 1,
     height: 1,
   },
   dividerText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-  },
-  signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  signupText: {
-    fontSize: 14,
-  },
-  signupLink: {
-    fontSize: 14,
-    fontWeight: '700',
+    marginHorizontal: 16,
   },
 });

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import * as MailComposer from 'expo-mail-composer';
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Call {
   id: string;
@@ -115,32 +116,107 @@ export const communicationService = {
     return data || [];
   },
 
-  // Log a completed call
+  // Log a call (simple version for native calls)
   async logCall(
     candidateId: string,
-    phoneNumber: string,
-    duration: number,
-    notes: string,
     userId: string,
-    userName: string
-  ): Promise<Call> {
-    const { data, error } = await supabase
-      .from('calls')
-      .insert({
+    userName: string,
+    candidateName?: string
+  ): Promise<void> {
+    try {
+      await supabase.from('calls').insert({
         candidate_id: candidateId,
         call_type: 'outbound',
-        phone_number: phoneNumber,
-        duration,
-        notes,
+        phone_number: 'N/A',
         status: 'completed',
-        created_by: userId,
+        created_by: userId || null,
         created_by_name: userName,
-      })
-      .select()
-      .single();
+      });
 
-    if (error) throw error;
-    return data;
+      const description = candidateName 
+        ? `Called ${candidateName} via native phone app`
+        : `Made call via native phone app`;
+      
+      await supabase.from('activities').insert({
+        candidate_id: candidateId,
+        activity_type: 'call',
+        description,
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+    } catch (error) {
+      console.error('Failed to log call:', error);
+    }
+  },
+
+  // Log an SMS (simple version for native SMS)
+  async logSMS(
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<void> {
+    try {
+      await supabase.from('sms_messages').insert({
+        candidate_id: candidateId,
+        direction: 'outbound',
+        phone_number: 'N/A',
+        message_body: 'Sent via native messaging app',
+        status: 'sent',
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+
+      const description = candidateName 
+        ? `SMS sent to ${candidateName} via native app`
+        : `SMS sent via native app`;
+      
+      await supabase.from('activities').insert({
+        candidate_id: candidateId,
+        activity_type: 'sms',
+        description,
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+    } catch (error) {
+      console.error('Failed to log SMS:', error);
+    }
+  },
+
+  // Log an email (simple version for native email)
+  async logEmail(
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<void> {
+    try {
+      await supabase.from('emails').insert({
+        candidate_id: candidateId,
+        direction: 'outbound',
+        to_email: 'N/A',
+        from_email: 'N/A',
+        subject: 'Sent via native email app',
+        body: '',
+        status: 'sent',
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+
+      const description = candidateName 
+        ? `Email sent to ${candidateName} via native app`
+        : `Email sent via native app`;
+      
+      await supabase.from('activities').insert({
+        candidate_id: candidateId,
+        activity_type: 'email',
+        description,
+        created_by: userId || null,
+        created_by_name: userName,
+      });
+    } catch (error) {
+      console.error('Failed to log email:', error);
+    }
   },
 
   // ===== SMS MESSAGES =====
@@ -315,6 +391,173 @@ export const communicationService = {
     // Backend would use Twilio SDK to send the SMS
     console.log('Twilio SMS would be sent via backend API');
     throw new Error('Twilio integration requires backend API setup');
+  },
+
+  // ===== PREFERENCE MANAGEMENT =====
+
+  async getCallPreference(): Promise<'twilio' | 'native'> {
+    try {
+      const pref = await AsyncStorage.getItem('call_method');
+      return (pref as 'twilio' | 'native') || 'twilio'; // Default to Twilio
+    } catch {
+      return 'twilio';
+    }
+  },
+
+  async getSMSPreference(): Promise<'twilio' | 'native'> {
+    try {
+      const pref = await AsyncStorage.getItem('sms_method');
+      return (pref as 'twilio' | 'native') || 'twilio'; // Default to Twilio
+    } catch {
+      return 'twilio';
+    }
+  },
+
+  async getEmailPreference(): Promise<'gmail' | 'native'> {
+    try {
+      const pref = await AsyncStorage.getItem('email_method');
+      return (pref as 'gmail' | 'native') || 'native'; // Default to native for email
+    } catch {
+      return 'native';
+    }
+  },
+
+  // ===== SMART COMMUNICATION METHODS (WITH PREFERENCES) =====
+
+  // Smart call - uses preference with fallback
+  async smartCall(
+    phoneNumber: string,
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<void> {
+    const preference = await this.getCallPreference();
+    
+    if (preference === 'twilio') {
+      try {
+        await this.makeCall(phoneNumber, candidateId, userId, userName, candidateName);
+        Alert.alert('Call Initiated', 'Your phone will ring shortly. Answer to connect with the candidate.');
+      } catch (error: any) {
+        console.error('Twilio call failed, falling back to native:', error);
+        Alert.alert(
+          'Twilio Unavailable',
+          'Falling back to native phone app. ' + (error.message || ''),
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Open Phone', 
+              onPress: async () => {
+                await Linking.openURL(`tel:${phoneNumber}`);
+                await this.logCall(candidateId, userId, userName, candidateName);
+              }
+            }
+          ]
+        );
+      }
+    } else {
+      // Native phone app
+      const canOpen = await Linking.canOpenURL(`tel:${phoneNumber}`);
+      if (canOpen) {
+        await Linking.openURL(`tel:${phoneNumber}`);
+        await this.logCall(candidateId, userId, userName, candidateName);
+      } else {
+        Alert.alert('Error', 'Unable to make phone calls on this device');
+      }
+    }
+  },
+
+  // Smart SMS - uses preference with fallback
+  async smartSMS(
+    phoneNumber: string,
+    message: string,
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<void> {
+    const preference = await this.getSMSPreference();
+    
+    if (preference === 'twilio') {
+      try {
+        await this.sendSMS(phoneNumber, message, candidateId, userId, userName, candidateName);
+        Alert.alert('SMS Sent', 'Message sent via Twilio successfully!');
+      } catch (error: any) {
+        console.error('Twilio SMS failed, falling back to native:', error);
+        Alert.alert(
+          'Twilio Unavailable',
+          'Falling back to native messaging app. ' + (error.message || ''),
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Open Messages', 
+              onPress: async () => {
+                await Linking.openURL(`sms:${phoneNumber}`);
+                await this.logSMS(candidateId, userId, userName, candidateName);
+              }
+            }
+          ]
+        );
+      }
+    } else {
+      // Native messaging app
+      const canOpen = await Linking.canOpenURL(`sms:${phoneNumber}`);
+      if (canOpen) {
+        await Linking.openURL(`sms:${phoneNumber}`);
+        await this.logSMS(candidateId, userId, userName, candidateName);
+      } else {
+        Alert.alert('Error', 'Unable to send SMS on this device');
+      }
+    }
+  },
+
+  // Smart email - uses preference with fallback
+  async smartEmail(
+    email: string,
+    subject: string,
+    body: string,
+    candidateId: string,
+    userId: string,
+    userName: string,
+    candidateName?: string
+  ): Promise<void> {
+    const preference = await this.getEmailPreference();
+    
+    if (preference === 'gmail') {
+      try {
+        await this.sendEmail(email, subject, body, candidateId, userId, userName, candidateName);
+        Alert.alert('Email Sent', 'Email sent via Gmail API successfully!');
+      } catch (error: any) {
+        console.error('Gmail API failed, falling back to native:', error);
+        Alert.alert(
+          'Gmail API Unavailable',
+          'Opening native email client. ' + (error.message || ''),
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Open Email', 
+              onPress: async () => {
+                const encodedSubject = encodeURIComponent(subject);
+                const encodedBody = encodeURIComponent(body);
+                await Linking.openURL(`mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`);
+                await this.logEmail(candidateId, userId, userName, candidateName);
+              }
+            }
+          ]
+        );
+      }
+    } else {
+      // Native email client
+      const encodedSubject = encodeURIComponent(subject);
+      const encodedBody = encodeURIComponent(body);
+      const canOpen = await Linking.canOpenURL(`mailto:${email}`);
+      if (canOpen) {
+        await Linking.openURL(`mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`);
+        await this.logEmail(candidateId, userId, userName, candidateName);
+      } else {
+        Alert.alert('Error', 'Unable to open email client');
+      }
+    }
   },
 
   // ===== API WRAPPERS WITH BETTER ERROR HANDLING =====

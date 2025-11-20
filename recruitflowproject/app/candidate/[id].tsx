@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { ScrollView, View, Text, StyleSheet, ActivityIndicator, Linking, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -13,16 +13,19 @@ import { UpcomingEventsSection } from '@/components/candidates/UpcomingEventsSec
 import { ScheduleInterviewModal } from '@/components/candidates/ScheduleInterviewModal';
 import { CreateTaskModal } from '@/components/candidates/CreateTaskModal';
 import { StatusChangeModal } from '@/components/candidates/StatusChangeModal';
+import { EditCandidateModal } from '@/components/candidates/EditCandidateModal';
 import { candidatesService } from '@/services/candidatesService';
 import { communicationService } from '@/services/communicationService';
 import { supabase } from '@/lib/supabase';
-import { Alert } from 'react-native';
 
 export default function CandidateProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  
+  const scrollViewRef = useRef<ScrollView>(null);
+  const notesSectionRef = useRef<View>(null);
   
   const [candidate, setCandidate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -31,14 +34,31 @@ export default function CandidateProfileScreen() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [triggerAddNote, setTriggerAddNote] = useState(false);
 
   useEffect(() => {
     loadCandidate();
     loadCurrentUser();
   }, [id]);
+
+  // Auto-scroll to Notes section when Add Note is triggered
+  useEffect(() => {
+    if (triggerAddNote && notesSectionRef.current) {
+      setTimeout(() => {
+        notesSectionRef.current?.measureLayout(
+          scrollViewRef.current as any,
+          (x, y) => {
+            scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+          },
+          () => {}
+        );
+      }, 100);
+    }
+  }, [triggerAddNote]);
 
   const loadCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -51,6 +71,11 @@ export default function CandidateProfileScreen() {
       const data = await candidatesService.getCandidateById(id);
       console.log('Loaded candidate:', data);
       setCandidate(data);
+      
+      // Mark as viewed when candidate profile is opened
+      if (data && !data.viewed) {
+        await candidatesService.markAsViewed(id);
+      }
     } catch (error) {
       console.error('Failed to load candidate:', error);
     } finally {
@@ -61,21 +86,19 @@ export default function CandidateProfileScreen() {
   const handleEmailPress = async () => {
     if (!candidate) return;
     try {
-      const result = await communicationService.sendEmailViaAPI(
+      const candidateName = `${candidate.first_name} ${candidate.last_name}`;
+      const subject = 'Re: Your Application';
+      const body = `Hi ${candidateName},\n\nThank you for your interest in the ${candidate.position} position.\n\nBest regards,\nRecruitment Team`;
+      
+      await communicationService.smartEmail(
         candidate.email,
-        'Re: Your Application',
-        `Hi ${candidate.first_name} ${candidate.last_name},\n\nThank you for your interest in the ${candidate.position} position.\n\nBest regards,\nRecruitment Team`,
+        subject,
+        body,
         candidate.id,
         currentUser?.id || '',
         currentUser?.email || 'Recruiter',
-        `${candidate.first_name} ${candidate.last_name}`
+        candidateName
       );
-      
-      if (result.success) {
-        Alert.alert('Success', 'Email sent successfully via Gmail!');
-      } else {
-        Alert.alert('Error', result.error || 'Failed to send email');
-      }
     } catch (error) {
       console.error('Email error:', error);
       Alert.alert('Error', 'Failed to send email');
@@ -85,22 +108,16 @@ export default function CandidateProfileScreen() {
   const handleCallPress = async () => {
     if (!candidate) return;
     try {
-      const result = await communicationService.makeCallViaAPI(
+      await communicationService.smartCall(
         candidate.phone,
         candidate.id,
         currentUser?.id || '',
         currentUser?.email || 'Recruiter',
         `${candidate.first_name} ${candidate.last_name}`
       );
-      
-      if (result.success) {
-        Alert.alert('Success', 'Call initiated via Twilio!');
-      } else {
-        Alert.alert('Error', result.error || 'Failed to make call');
-      }
     } catch (error) {
       console.error('Call error:', error);
-      Alert.alert('Error', 'Failed to make call');
+      Alert.alert('Error', 'Failed to initiate call');
     }
   };
 
@@ -125,12 +142,16 @@ export default function CandidateProfileScreen() {
     { icon: 'mail' as const, label: 'Email', value: candidate.email, link: `mailto:${candidate.email}` },
     { icon: 'call' as const, label: 'Phone', value: candidate.phone || 'N/A', link: candidate.phone ? `tel:${candidate.phone}` : undefined },
     { icon: 'location' as const, label: 'Location', value: candidate.location || 'N/A' },
+    { icon: 'logo-linkedin' as const, label: 'LinkedIn', value: candidate.linkedin_url ? 'View Profile' : 'N/A', link: candidate.linkedin_url },
+    { icon: 'briefcase-outline' as const, label: 'Portfolio', value: candidate.portfolio_url ? 'View Portfolio' : 'N/A', link: candidate.portfolio_url },
   ];
 
   const professionalInfo = [
     { icon: 'briefcase' as const, label: 'Current Position', value: candidate.current_position || 'N/A' },
     { icon: 'business' as const, label: 'Current Company', value: candidate.current_company || 'N/A' },
     { icon: 'time' as const, label: 'Experience', value: candidate.years_of_experience ? `${candidate.years_of_experience} years` : 'N/A' },
+    { icon: 'cash-outline' as const, label: 'Expected Salary', value: candidate.expected_salary || 'N/A' },
+    { icon: 'globe-outline' as const, label: 'Citizenship', value: candidate.citizenship || 'N/A' },
   ];
 
   const applicationInfo = [
@@ -138,17 +159,17 @@ export default function CandidateProfileScreen() {
     { icon: 'people' as const, label: 'Department', value: candidate.department || 'N/A' },
     { icon: 'calendar' as const, label: 'Applied Date', value: new Date(candidate.applied_date || candidate.created_at).toLocaleDateString() },
     { icon: 'bookmark' as const, label: 'Source', value: candidate.source || 'N/A' },
+    { icon: 'document-attach' as const, label: 'Resume Received', value: candidate.resume_received ? 'Yes' : 'No' },
+    { icon: 'checkmark-circle' as const, label: 'Qualification', value: candidate.qualified === 'qualified' ? 'Qualified' : candidate.qualified === 'not_qualified' ? 'Not Qualified' : 'Pending' },
   ];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
         <CandidateHeader 
           candidate={candidate} 
           onBack={() => router.back()}
           onStatusPress={() => setShowStatusModal(true)}
-          onEmailPress={handleEmailPress}
-          onCallPress={handleCallPress}
           onMorePress={() => setShowActionsModal(true)}
         />
 
@@ -159,23 +180,21 @@ export default function CandidateProfileScreen() {
             candidateName={`${candidate.first_name} ${candidate.last_name}`}
             email={candidate.email}
             phone={candidate.phone || ''}
-            userId=""
-            userName="Recruiter"
+            userId={currentUser?.id || ''}
+            userName={currentUser?.email || 'Recruiter'}
             onScheduleInterview={() => setShowScheduleModal(true)}
             onAddTask={() => setShowTaskModal(true)}
-            onAddNote={() => {
-              console.log('Add note');
-            }}
+            onAddNote={() => setTriggerAddNote(true)}
           />
 
           {/* Contact Information */}
-          <InfoSection title="Contact Information" items={contactInfo} />
+          <InfoSection title="Contact Information" items={contactInfo} onEdit={() => setShowEditModal(true)} />
 
           {/* Professional Information */}
-          <InfoSection title="Professional Information" items={professionalInfo} />
+          <InfoSection title="Professional Information" items={professionalInfo} onEdit={() => setShowEditModal(true)} />
 
           {/* Application Details */}
-          <InfoSection title="Application Details" items={applicationInfo} />
+          <InfoSection title="Application Details" items={applicationInfo} onEdit={() => setShowEditModal(true)} />
 
           {/* Upcoming Interviews & Tasks */}
           <UpcomingEventsSection 
@@ -192,11 +211,15 @@ export default function CandidateProfileScreen() {
           />
 
           {/* Notes Section with Realtime */}
-          <NotesSection
-            candidateId={candidate.id}
-            userId=""
-            userName="Recruiter"
-          />
+          <View ref={notesSectionRef}>
+            <NotesSection
+              candidateId={candidate.id}
+              userId={currentUser?.id || ''}
+              userName={currentUser?.email || 'Recruiter'}
+              triggerAddNote={triggerAddNote}
+              onAddNoteTriggered={() => setTriggerAddNote(false)}
+            />
+          </View>
         </View>
       </ScrollView>
 
@@ -236,6 +259,13 @@ export default function CandidateProfileScreen() {
         candidateName={`${candidate.first_name} ${candidate.last_name}`}
         currentStatus={candidate.status}
         onStatusChanged={loadCandidate}
+      />
+
+      <EditCandidateModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        candidate={candidate}
+        onUpdate={loadCandidate}
       />
     </View>
   );

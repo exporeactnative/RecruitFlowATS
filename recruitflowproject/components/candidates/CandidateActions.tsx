@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, BrandColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -33,76 +33,8 @@ export function CandidateActions({
   const colors = Colors[colorScheme];
   const [showActionsModal, setShowActionsModal] = useState(false);
 
+  // Actions shown in the "More Actions" modal
   const actions = [
-    {
-      icon: 'call' as const,
-      label: 'Make Call',
-      color: BrandColors.teal[500],
-      onPress: async () => {
-        try {
-          const result = await communicationService.makeCallViaAPI(phone, candidateId, userId, userName, candidateName);
-          setShowActionsModal(false);
-          if (result.success) {
-            Alert.alert('Success', 'Call initiated via Twilio!');
-          } else {
-            Alert.alert('Error', result.error || 'Failed to make call');
-          }
-        } catch (error) {
-          Alert.alert('Error', 'Failed to make call');
-        }
-      },
-    },
-    {
-      icon: 'chatbubble' as const,
-      label: 'Send SMS',
-      color: BrandColors.orange[500],
-      onPress: async () => {
-        try {
-          const result = await communicationService.sendSMSViaAPI(
-            phone,
-            `Hi ${candidateName}, thank you for your interest in our position. We'll be in touch soon!`,
-            candidateId,
-            userId,
-            userName,
-            candidateName
-          );
-          setShowActionsModal(false);
-          if (result.success) {
-            Alert.alert('Success', 'SMS sent via Twilio!');
-          } else {
-            Alert.alert('Error', result.error || 'Failed to send SMS');
-          }
-        } catch (error) {
-          Alert.alert('Error', 'Failed to send SMS');
-        }
-      },
-    },
-    {
-      icon: 'mail' as const,
-      label: 'Send Email',
-      color: colors.info,
-      onPress: async () => {
-        try {
-          const result = await communicationService.sendEmailViaAPI(
-            email,
-            `Re: Your Application`,
-            `Hi ${candidateName},\n\nThank you for your interest in our position. We appreciate your application and will review it carefully.\n\nBest regards,\nRecruitment Team`,
-            candidateId,
-            userId,
-            userName,
-            candidateName
-          );
-          setShowActionsModal(false);
-          if (result.success) {
-            Alert.alert('Success', 'Email sent via Gmail!');
-          } else {
-            Alert.alert('Error', result.error || 'Failed to send email');
-          }
-        } catch (error) {
-          Alert.alert('Error', 'Failed to send email');
-        }
-      },
-    },
     {
       icon: 'calendar' as const,
       label: 'Schedule Interview',

@@ -73,6 +73,8 @@ export interface Candidate {
   currentPosition?: string;
   currentCompany?: string;
   yearsOfExperience: number;
+  expectedSalary?: string;
+  citizenship?: string;
   
   // Application Info
   position: string;
@@ -81,6 +83,8 @@ export interface Candidate {
   stage: CandidateStage;
   appliedDate: string;
   source: string;
+  resumeReceived?: boolean;
+  qualified?: 'qualified' | 'not_qualified' | 'pending';
   
   // Profile
   avatar?: string;
@@ -101,6 +105,7 @@ export interface Candidate {
   // Metadata
   recruiter: string;
   hiringManager?: string;
+  viewed?: boolean; // Track if candidate has been viewed
   createdAt: string;
   updatedAt: string;
 }

@@ -10,9 +10,11 @@ import { Badge } from '@/components/ui/Badge';
 
 interface CandidateCardProps {
   candidate: any; // Using any to handle both camelCase and snake_case from database
+  index?: number;
+  totalCount?: number;
 }
 
-export function CandidateCard({ candidate }: CandidateCardProps) {
+export function CandidateCard({ candidate, index, totalCount }: CandidateCardProps) {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -40,18 +42,38 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
     );
   };
 
+  const cardStyle = [
+    styles.card,
+    !candidate.viewed && { borderLeftWidth: 4, borderLeftColor: BrandColors.orange[500] }
+  ].filter(Boolean);
+
   return (
     <TouchableOpacity
       onPress={() => router.push(`/candidate/${candidate.id}`)}
       activeOpacity={0.7}
     >
-      <Card style={styles.card}>
+      <Card style={cardStyle as any}>
         <View style={styles.content}>
+          {/* Number Badge */}
+          {index !== undefined && (
+            <View style={[styles.numberBadge, { backgroundColor: colors.backgroundSecondary }]}>
+              <Text style={[styles.numberText, { color: colors.textMuted }]}>
+                {index}
+              </Text>
+            </View>
+          )}
+
           {/* Avatar */}
           <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
             <Text style={[styles.avatarText, { color: colors.primary }]}>
               {getInitials()}
             </Text>
+            {/* Unviewed indicator dot */}
+            {!candidate.viewed && (
+              <View style={styles.unviewedDot}>
+                <View style={[styles.unviewedDotInner, { backgroundColor: BrandColors.orange[500] }]} />
+              </View>
+            )}
           </View>
 
           {/* Info */}
@@ -60,13 +82,29 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
               <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                 {candidate.first_name || candidate.firstName} {candidate.last_name || candidate.lastName}
               </Text>
+              {!candidate.viewed && (
+                <View style={[styles.newBadge, { backgroundColor: BrandColors.orange[500] }]}>
+                  <Text style={styles.newBadgeText}>NEW</Text>
+                </View>
+              )}
               {renderStars()}
             </View>
             <Text style={[styles.position, { color: colors.textSecondary }]} numberOfLines={1}>
               {candidate.position}
             </Text>
             <View style={styles.footer}>
-              <Badge label={candidate.stage} variant="status" status={candidate.status} size="small" />
+              <View style={styles.badgesContainer}>
+                <Badge label={candidate.stage} variant="status" status={candidate.status} size="small" />
+                {candidate.qualified === 'qualified' && (
+                  <Badge label="Qualified" variant="success" size="small" />
+                )}
+                {candidate.qualified === 'not_qualified' && (
+                  <Badge label="Not Qualified" variant="error" size="small" />
+                )}
+                {candidate.resume_received && (
+                  <Badge label="Resume ✓" variant="primary" size="small" />
+                )}
+              </View>
               <Text style={[styles.date, { color: colors.textMuted }]}>
                 {new Date(candidate.applied_date || candidate.appliedDate || new Date()).toLocaleDateString('en-US', {
                   month: 'short',
@@ -91,6 +129,18 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  numberBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  numberText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   avatar: {
     width: 50,
@@ -131,7 +181,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  badgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    flex: 1,
+    marginRight: 8,
+  },
   date: {
     fontSize: 12,
+  },
+  unviewedDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: BrandColors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unviewedDotInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  newBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  newBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: BrandColors.white,
   },
 });

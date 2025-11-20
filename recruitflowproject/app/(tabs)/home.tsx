@@ -21,6 +21,7 @@ export default function HomeScreen() {
   // Get user info from auth
   const recruiterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Recruiter";
   const recruiterRole = user?.user_metadata?.role || "Recruiter";
+  const avatarUrl = user?.user_metadata?.avatar_url;
 
   const handleSettings = () => {
     router.push('/settings' as any);
@@ -49,11 +50,15 @@ export default function HomeScreen() {
         {/* Recruiter Profile Card */}
         <Card style={styles.featuredCard}>
           <View style={styles.avatarContainer}>
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarText}>
-                {recruiterName.split(' ').map((n: string) => n[0]).join('')}
-              </Text>
-            </View>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                <Text style={styles.avatarText}>
+                  {recruiterName.split(' ').map((n: string) => n[0]).join('')}
+                </Text>
+              </View>
+            )}
           </View>
           <Text style={[styles.candidateName, { color: colors.text }]}>
             {recruiterName}
@@ -175,6 +180,13 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: BrandColors.white,
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     borderWidth: 4,
     borderColor: BrandColors.white,
   },

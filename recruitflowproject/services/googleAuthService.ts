@@ -80,9 +80,14 @@ class GoogleAuthService {
       // Use the same redirect URI that expo-auth-session uses
       const redirectUri = makeRedirectUri();
       
+      // Use Web Client ID for token exchange (has client secret)
+      const webClientId = process.env.GOOGLE_CLIENT_ID || '612138990798-eo0q5rfjlsfduot9ep72hnumsvs37f0f.apps.googleusercontent.com';
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET || 'yGOCSPX-W_uDqhKuljfaoHvJ1F7v7gTigIIu';
+      
       console.log('🔄 Exchanging code for tokens...');
       console.log('📍 Redirect URI:', redirectUri);
-      console.log('🔑 Client ID:', this.clientId);
+      console.log('🔑 Mobile Client ID (for auth):', this.clientId);
+      console.log('🔑 Web Client ID (for token exchange):', webClientId);
       
       const response = await fetch(tokenEndpoint, {
         method: 'POST',
@@ -91,7 +96,8 @@ class GoogleAuthService {
         },
         body: new URLSearchParams({
           code,
-          client_id: this.clientId,
+          client_id: webClientId,
+          client_secret: clientSecret,
           redirect_uri: redirectUri,
           grant_type: 'authorization_code',
         }).toString(),

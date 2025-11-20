@@ -2,7 +2,7 @@
   "expo": {
     "name": "RecruitFlow",
     "slug": "recruitflowproject",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "recruitflowproject",
@@ -11,8 +11,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.recruitflow.app",
+      "buildNumber": "3",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "recruitflowproject",
+              "com.googleusercontent.apps.612138990798-h28h6vtenat4cd4rvn8c8r9ut30eau0f"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -60,7 +69,7 @@
       "router": {},
       "supabaseUrl": "https://khnranbpqbyszakbfavb.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtobnJhbmJwcWJ5c3pha2JmYXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNDIwNTIsImV4cCI6MjA3ODYxODA1Mn0.atVT-Pm1aKc0LXDSCJ5j0KLYZo4dG_Jh6sbfZqGMOdc",
-      "googleClientId": "612138990798-eo0q5rfjlsfduot9ep72hnumsvs37f0f.apps.googleusercontent.com",
+      "googleClientId": "612138990798-h28h6vtenat4cd4rvn8c8r9ut30eau0f.apps.googleusercontent.com",
       "eas": {
         "projectId": "211173f2-3997-4094-936d-13403d8cd95d"
       }

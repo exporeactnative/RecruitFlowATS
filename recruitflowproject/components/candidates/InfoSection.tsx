@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -15,21 +15,52 @@ interface InfoItem {
 interface InfoSectionProps {
   title: string;
   items: InfoItem[];
+  onEdit?: () => void;
 }
 
-export function InfoSection({ title, items }: InfoSectionProps) {
+export function InfoSection({ title, items, onEdit }: InfoSectionProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  const handlePress = (link?: string) => {
-    if (link) {
-      Linking.openURL(link);
+  const handlePress = async (link?: string) => {
+    if (!link) return;
+
+    try {
+      let normalized = link.trim();
+
+      // Add https:// for plain web URLs (e.g. "www.site.com")
+      if (
+        !normalized.startsWith('http://') &&
+        !normalized.startsWith('https://') &&
+        !normalized.startsWith('mailto:') &&
+        !normalized.startsWith('tel:')
+      ) {
+        normalized = `https://${normalized}`;
+      }
+
+      const canOpen = await Linking.canOpenURL(normalized);
+      if (!canOpen) {
+        Alert.alert('Not Supported', 'This action cannot be opened on this device or simulator.');
+        return;
+      }
+
+      await Linking.openURL(normalized);
+    } catch (error) {
+      console.error('Failed to open link:', error);
+      Alert.alert('Error', 'Unable to open this link on your device.');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      <View style={styles.titleRow}>
+        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        {onEdit && (
+          <TouchableOpacity onPress={onEdit} style={styles.editButton}>
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
       <Card>
         {items.map((item, index) => (
           <TouchableOpacity
@@ -66,10 +97,18 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 12,
+  },
+  editButton: {
+    padding: 4,
   },
   item: {
     flexDirection: 'row',

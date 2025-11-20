@@ -78,16 +78,54 @@ export default function CandidatesScreen() {
     setRefreshing(false);
   };
 
-  const getFilteredCandidates = (filter: CandidateStatus | 'all') => {
-    return candidates.filter((candidate: any) => {
-      const matchesSearch =
-        candidate.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        candidate.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        candidate.position?.toLowerCase().includes(searchQuery.toLowerCase());
+  const getFilteredCandidates = (filter: CandidateStatus | 'all' | 'new') => {
+    const filtered = candidates.filter((candidate: any) => {
+      const query = searchQuery.toLowerCase();
+      
+      // Search in basic fields
+      const matchesBasic =
+        candidate.first_name?.toLowerCase().includes(query) ||
+        candidate.last_name?.toLowerCase().includes(query) ||
+        candidate.position?.toLowerCase().includes(query);
+      
+      // Search in badge values
+      const matchesQualified = candidate.qualified?.toLowerCase().includes(query);
+      const matchesResume = 
+        (candidate.resume_received && 'resume received'.includes(query)) ||
+        (candidate.resume_received && 'received'.includes(query));
+      const matchesStage = candidate.stage?.toLowerCase().includes(query);
+      const matchesStatus = candidate.status?.toLowerCase().includes(query);
+      
+      const matchesSearch = matchesBasic || matchesQualified || matchesResume || matchesStage || matchesStatus;
 
-      const matchesFilter = filter === 'all' || candidate.status === filter;
+      // "New" filter shows only unviewed candidates (regardless of status)
+      // Other filters show candidates by status
+      let matchesFilter = false;
+      if (filter === 'all') {
+        matchesFilter = true;
+      } else if (filter === 'new') {
+        matchesFilter = !candidate.viewed; // Only unviewed candidates
+      } else {
+        matchesFilter = candidate.status === filter;
+      }
 
       return matchesSearch && matchesFilter;
+    });
+
+    // Sort by created date (newest first), then alphabetically by last name
+    return filtered.sort((a: any, b: any) => {
+      const aDate = new Date(a.created_at || a.createdAt || 0).getTime();
+      const bDate = new Date(b.created_at || b.createdAt || 0).getTime();
+
+      // Primary: newest first
+      if (bDate !== aDate) {
+        return bDate - aDate;
+      }
+
+      // Secondary: alphabetical by last name when dates are equal
+      const aLastName = (a.last_name || a.lastName || '').toLowerCase();
+      const bLastName = (b.last_name || b.lastName || '').toLowerCase();
+      return aLastName.localeCompare(bLastName);
     });
   };
 
@@ -109,7 +147,13 @@ export default function CandidatesScreen() {
       <FlatList
         data={filteredCandidates}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <CandidateCard candidate={item} />}
+        renderItem={({ item, index }) => (
+          <CandidateCard 
+            candidate={item} 
+            index={index + 1}
+            totalCount={filteredCandidates.length}
+          />
+        )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         scrollEnabled={false}
@@ -121,6 +165,16 @@ export default function CandidatesScreen() {
             tintColor={colors.primary}
             colors={[colors.primary]}
           />
+        }
+        ListHeaderComponent={
+          filteredCandidates.length > 0 ? (
+            <View style={styles.countHeader}>
+              <Text style={[styles.countText, { color: colors.textSecondary }]}>
+                Showing {filteredCandidates.length} {filteredCandidates.length === 1 ? 'candidate' : 'candidates'}
+                {searchQuery ? ` matching "${searchQuery}"` : ''}
+              </Text>
+            </View>
+          ) : null
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -283,6 +337,15 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  countHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  countText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   listContent: {
     paddingHorizontal: 20,

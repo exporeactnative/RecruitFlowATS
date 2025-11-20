@@ -157,7 +157,11 @@ export function ScheduleInterviewModal({
           <View style={{ width: 28 }} />
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Event Type Selector */}
           <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
           <View style={styles.typeSelector}>
@@ -225,34 +229,22 @@ export function ScheduleInterviewModal({
             <Text style={[styles.dateButtonText, { color: colors.text }]}>{formatDateTime(startDate)}</Text>
           </TouchableOpacity>
 
-          {showStartPicker && (
-            <View>
-              <DateTimePicker
-                value={startDate}
-                mode="datetime"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, date) => {
-                  if (Platform.OS === 'android') {
-                    setShowStartPicker(false);
+          {Platform.OS === 'android' && showStartPicker && (
+            <DateTimePicker
+              value={startDate}
+              mode="datetime"
+              display="default"
+              onChange={(event, date) => {
+                setShowStartPicker(false);
+                if (date) {
+                  setStartDate(date);
+                  // Auto-adjust end time to be 1 hour after start
+                  if (date >= endDate) {
+                    setEndDate(new Date(date.getTime() + 60 * 60 * 1000));
                   }
-                  if (date) {
-                    setStartDate(date);
-                    // Auto-adjust end time to be 1 hour after start
-                    if (date >= endDate) {
-                      setEndDate(new Date(date.getTime() + 60 * 60 * 1000));
-                    }
-                  }
-                }}
-              />
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={[styles.doneButton, { backgroundColor: colors.primary }]}
-                  onPress={() => setShowStartPicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+                }
+              }}
+            />
           )}
 
           {/* End Time */}
@@ -265,29 +257,17 @@ export function ScheduleInterviewModal({
             <Text style={[styles.dateButtonText, { color: colors.text }]}>{formatDateTime(endDate)}</Text>
           </TouchableOpacity>
 
-          {showEndPicker && (
-            <View>
-              <DateTimePicker
-                value={endDate}
-                mode="datetime"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={startDate}
-                onChange={(event, date) => {
-                  if (Platform.OS === 'android') {
-                    setShowEndPicker(false);
-                  }
-                  if (date) setEndDate(date);
-                }}
-              />
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={[styles.doneButton, { backgroundColor: colors.primary }]}
-                  onPress={() => setShowEndPicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+          {Platform.OS === 'android' && showEndPicker && (
+            <DateTimePicker
+              value={endDate}
+              mode="datetime"
+              display="default"
+              minimumDate={startDate}
+              onChange={(event, date) => {
+                setShowEndPicker(false);
+                if (date) setEndDate(date);
+              }}
+            />
           )}
 
           {/* Location */}
@@ -322,6 +302,82 @@ export function ScheduleInterviewModal({
             style={styles.submitButton}
           />
         </ScrollView>
+
+        {/* iOS Date Picker Modals */}
+        {Platform.OS === 'ios' && showStartPicker && (
+          <Modal
+            transparent
+            animationType="slide"
+            visible={showStartPicker}
+            onRequestClose={() => setShowStartPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowStartPicker(false)}
+            >
+              <View style={[styles.pickerModal, { backgroundColor: colors.background }]}>
+                <View style={[styles.pickerHeader, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.pickerTitle, { color: colors.text }]}>Select Start Time</Text>
+                  <TouchableOpacity onPress={() => setShowStartPicker(false)}>
+                    <Text style={[styles.pickerDone, { color: BrandColors.teal[500] }]}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={startDate}
+                  mode="datetime"
+                  display="spinner"
+                  themeVariant={colorScheme}
+                  onChange={(event, date) => {
+                    if (date) {
+                      setStartDate(date);
+                      // Auto-adjust end time to be 1 hour after start
+                      if (date >= endDate) {
+                        setEndDate(new Date(date.getTime() + 60 * 60 * 1000));
+                      }
+                    }
+                  }}
+                  style={{ height: 200 }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
+
+        {Platform.OS === 'ios' && showEndPicker && (
+          <Modal
+            transparent
+            animationType="slide"
+            visible={showEndPicker}
+            onRequestClose={() => setShowEndPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowEndPicker(false)}
+            >
+              <View style={[styles.pickerModal, { backgroundColor: colors.background }]}>
+                <View style={[styles.pickerHeader, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.pickerTitle, { color: colors.text }]}>Select End Time</Text>
+                  <TouchableOpacity onPress={() => setShowEndPicker(false)}>
+                    <Text style={[styles.pickerDone, { color: BrandColors.teal[500] }]}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={endDate}
+                  mode="datetime"
+                  display="spinner"
+                  themeVariant={colorScheme}
+                  minimumDate={startDate}
+                  onChange={(event, date) => {
+                    if (date) setEndDate(date);
+                  }}
+                  style={{ height: 200 }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
       </View>
     </Modal>
   );
@@ -397,19 +453,50 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 16,
   },
+  pickerContainer: {
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 16,
+  },
   submitButton: {
     marginTop: 32,
     marginBottom: 40,
   },
   doneButton: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 12,
   },
   doneButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  pickerModal: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  pickerTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  pickerDone: {
+    fontSize: 17,
     fontWeight: '600',
   },
 });

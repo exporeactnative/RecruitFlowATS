@@ -321,3 +321,212 @@ You'll know it's working when:
 - [Google Calendar API](https://developers.google.com/calendar/api/v3/reference)
 - [Google Tasks API](https://developers.google.com/tasks/reference/rest)
 - [Gmail API](https://developers.google.com/gmail/api/reference/rest)
+
+---
+
+## 🔄 Latest Updates & Current Status
+
+**Last Updated**: November 18, 2025, 7:10 PM
+
+### ✅ What's Working
+
+1. **OAuth Flow Initiation**
+   - ✅ Google sign-in button appears and is clickable
+   - ✅ Browser opens with Google authentication
+   - ✅ User can select Google account
+   - ✅ User can grant permissions
+   - ✅ OAuth consent screen displays correctly
+
+2. **Configuration Completed**
+   - ✅ **iOS Client ID**: `612138990798-h28h6vtenat4cd4rvn8c8r9ut30eau0f.apps.googleusercontent.com`
+   - ✅ **Web Client ID**: `612138990798-eo0q5rfjlsfduot9ep72hnumsvs37f0f.apps.googleusercontent.com`
+   - ✅ **Web Client Secret**: Configured for token exchange
+   - ✅ **Bundle ID**: `com.recruitflow.app`
+   - ✅ **Expo Redirect URI**: `https://auth.expo.io/@myexporeactnative/recruitflowproject`
+   - ✅ **Supabase Callback**: `https://khnranbpqbyszakbfavb.supabase.co/auth/v1/callback`
+
+3. **Hybrid Approach Implemented**
+   - ✅ **iOS Client ID** used for initial OAuth request (shown to user)
+   - ✅ **Web Client ID + Secret** used for token exchange (backend)
+   - ✅ Token exchange logic in `googleAuthService.ts` updated
+
+4. **iOS URL Scheme Configuration**
+   - ✅ Added to `app.json` → `ios.infoPlist.CFBundleURLTypes`:
+     ```json
+     "CFBundleURLSchemes": [
+       "recruitflowproject",
+       "com.googleusercontent.apps.612138990798-h28h6vtenat4cd4rvn8c8r9ut30eau0f"
+     ]
+     ```
+
+### 🚧 Current Issue: Redirect Back to App
+
+**Problem**: OAuth flow completes successfully in browser, but app doesn't receive the redirect/callback.
+
+**Symptoms**:
+- User clicks "Sign in with Google" ✅
+- Browser opens with Google sign-in ✅
+- User selects account ✅
+- User grants permissions ✅
+- Browser shows success ✅
+- **App shows "Failed to complete Google authentication" ❌**
+
+**Root Cause**: The redirect from Google back to the app is not being properly handled by iOS.
+
+### 🔍 What We've Tried
+
+1. ✅ **Supabase OAuth Approach** - Didn't work (nothing happened on button click)
+2. ✅ **Web Client ID Only** - Got "Custom scheme URIs not allowed" error
+3. ✅ **iOS Client ID Only** - OAuth worked but token exchange failed
+4. ✅ **Hybrid Approach** - iOS Client for auth, Web Client for token exchange
+5. ✅ **Added iOS URL Schemes** - Registered both app scheme and Google OAuth scheme
+6. ⏳ **Latest Build** - Currently testing with all fixes combined
+
+### 📝 Technical Details
+
+#### Current Configuration
+
+**Environment Variables** (`.env`):
+```bash
+# iOS Client ID for initial OAuth
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=612138990798-h28h6vtenat4cd4rvn8c8r9ut30eau0f.apps.googleusercontent.com
+
+# Web Client ID + Secret for token exchange
+GOOGLE_CLIENT_ID=612138990798-eo0q5rfjlsfduot9ep72hnumsvs37f0f.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=yGOCSPX-W_uDqhKuljfaoHvJ1F7v7gTigIIu
+```
+
+**Token Exchange Logic** (`services/googleAuthService.ts`):
+```typescript
+async exchangeCodeForTokens(code: string): Promise<GoogleTokens | null> {
+  // Use Web Client ID + Secret for token exchange
+  const webClientId = process.env.GOOGLE_CLIENT_ID || '612138990798-eo0q5rfjlsfduot9ep72hnumsvs37f0f.apps.googleusercontent.com';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || 'yGOCSPX-W_uDqhKuljfaoHvJ1F7v7gTigIIu';
+  
+  const response = await fetch(tokenEndpoint, {
+    method: 'POST',
+    body: new URLSearchParams({
+      code,
+      client_id: webClientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }).toString(),
+  });
+  // ...
+}
+```
+
+**iOS URL Schemes** (`app.json`):
+```json
+{
+  "expo": {
+    "scheme": "recruitflowproject",
+    "ios": {
+      "bundleIdentifier": "com.recruitflow.app",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "recruitflowproject",
+              "com.googleusercontent.apps.612138990798-h28h6vtenat4cd4rvn8c8r9ut30eau0f"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+### 🎯 Next Steps to Fix
+
+1. **Verify URL Scheme Registration**
+   - Ensure the iOS build includes the URL schemes in Info.plist
+   - Check that iOS recognizes the Google OAuth redirect
+
+2. **Test Deep Link Handling**
+   - Verify app can receive deep links
+   - Test with simple deep link first
+
+3. **Alternative Approaches to Consider**
+   - Use `@react-native-google-signin/google-signin` package (native SDK)
+   - Implement custom URL scheme handler
+   - Use Supabase Auth with proper configuration
+
+4. **Debug Logging**
+   - Add more console logs in `GoogleConnectButton.tsx`
+   - Check what response is received from OAuth
+   - Verify redirect URI matches exactly
+
+### 📦 Latest Build
+
+**Build ID**: `ff6e739f-e9c3-4f77-9491-e9e8bb3441f8`  
+**Status**: In Progress  
+**Includes**:
+- iOS Client ID for OAuth initiation
+- Web Client ID + Secret for token exchange
+- Both URL schemes registered
+- Hybrid approach implementation
+
+**Build Logs**: https://expo.dev/accounts/myblissfulbubbles/projects/recruitflowproject/builds/ff6e739f-e9c3-4f77-9491-e9e8bb3441f8
+
+### 🔧 Files Modified
+
+1. **`services/googleAuthService.ts`**
+   - Updated `exchangeCodeForTokens` to use Web Client credentials
+   - Added debug logging for redirect URI and client IDs
+
+2. **`app.json`**
+   - Added `CFBundleURLTypes` with both URL schemes
+   - Maintained existing bundle identifier
+
+3. **`.env`**
+   - iOS Client ID in `EXPO_PUBLIC_GOOGLE_CLIENT_ID`
+   - Web Client ID in `GOOGLE_CLIENT_ID`
+   - Web Client Secret in `GOOGLE_CLIENT_SECRET`
+
+4. **`eas.json`**
+   - Updated all profiles with iOS Client ID
+
+### 💡 Key Learnings
+
+1. **iOS OAuth clients** don't support authorization code exchange without client secret
+2. **Web OAuth clients** work with `expo-auth-session` but need proper redirect URI configuration
+3. **Hybrid approach** uses iOS client for user-facing auth, Web client for backend token exchange
+4. **URL schemes** must be registered in iOS Info.plist for deep linking to work
+5. **OTA updates** can't change environment variables (need new build)
+
+### 📌 Where We Left Off
+
+**Status**: Waiting for build `ff6e739f-e9c3-4f77-9491-e9e8bb3441f8` to complete and test.
+
+**Expected Outcome**: With the iOS URL schemes properly registered, the app should be able to receive the OAuth redirect from Google and complete the authentication flow.
+
+**If This Doesn't Work**: Consider switching to `@react-native-google-signin/google-signin` which uses the native Google Sign-In SDK and handles all the URL scheme complexity automatically.
+
+---
+
+## 🆘 Emergency Fallback Plan
+
+If the current approach continues to fail, here's the backup plan:
+
+### Option 1: Use Native Google Sign-In SDK
+
+```bash
+npx expo install @react-native-google-signin/google-signin
+```
+
+This package handles all the iOS/Android native configuration automatically and is more reliable for production apps.
+
+### Option 2: Web-Only OAuth
+
+Keep Google OAuth working in web version only, and use email/password for mobile until we can dedicate more time to fixing the native flow.
+
+### Option 3: Supabase Auth with Google
+
+Let Supabase handle the entire OAuth flow, which abstracts away the complexity but requires different configuration.
+
+---
+
+**Remember**: The OAuth flow IS working - we just need to fix the final redirect back to the app! 🎯

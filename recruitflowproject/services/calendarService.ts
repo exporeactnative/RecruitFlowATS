@@ -53,13 +53,11 @@ export const calendarService = {
     return data || [];
   },
 
-  // Get ALL upcoming events (for Schedule tab)
+  // Get ALL events (for Schedule tab) - including past events
   async getAllUpcomingEvents(): Promise<CalendarEvent[]> {
-    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('calendar_events')
       .select('*')
-      .gte('start_time', now)
       .order('start_time', { ascending: true });
 
     if (error) throw error;
@@ -180,23 +178,33 @@ export const calendarService = {
   },
 
   // Subscribe to realtime event updates
-  subscribeToEvents(candidateId: string, callback: (event: CalendarEvent) => void) {
+  subscribeToEvents(
+    candidateId: string, 
+    onUpdate: (event: CalendarEvent) => void,
+    onDelete?: (eventId: string) => void
+  ) {
+    const channelName = candidateId ? `calendar_events:${candidateId}` : 'calendar_events:all';
+    
+    const channelConfig: any = {
+      event: '*',
+      schema: 'public',
+      table: 'calendar_events',
+    };
+    
+    // Only add filter if candidateId is provided
+    if (candidateId) {
+      channelConfig.filter = `candidate_id=eq.${candidateId}`;
+    }
+    
     const channel = supabase
-      .channel(`calendar_events:${candidateId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'calendar_events',
-          filter: `candidate_id=eq.${candidateId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            callback(payload.new as CalendarEvent);
-          }
+      .channel(channelName)
+      .on('postgres_changes', channelConfig, (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          onUpdate(payload.new as CalendarEvent);
+        } else if (payload.eventType === 'DELETE' && onDelete) {
+          onDelete(payload.old.id);
         }
-      )
+      })
       .subscribe();
 
     return () => {

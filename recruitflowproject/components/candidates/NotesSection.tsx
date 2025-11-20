@@ -20,9 +20,11 @@ interface NotesSectionProps {
   candidateId: string;
   userId: string;
   userName: string;
+  triggerAddNote?: boolean;
+  onAddNoteTriggered?: () => void;
 }
 
-export function NotesSection({ candidateId, userId, userName }: NotesSectionProps) {
+export function NotesSection({ candidateId, userId, userName, triggerAddNote, onAddNoteTriggered }: NotesSectionProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   
@@ -34,6 +36,14 @@ export function NotesSection({ candidateId, userId, userName }: NotesSectionProp
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const [editingNoteType, setEditingNoteType] = useState<Note['note_type']>('general');
+
+  // Handle external trigger to add note
+  useEffect(() => {
+    if (triggerAddNote) {
+      setIsAddingNote(true);
+      onAddNoteTriggered?.();
+    }
+  }, [triggerAddNote]);
 
   const noteTypes: Array<{ value: Note['note_type']; label: string }> = [
     { value: 'general', label: 'General' },

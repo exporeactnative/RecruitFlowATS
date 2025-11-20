@@ -11,12 +11,10 @@ interface CandidateHeaderProps {
   candidate: any; // Using any to handle both camelCase and snake_case from database
   onBack?: () => void;
   onStatusPress?: () => void;
-  onEmailPress?: () => void;
-  onCallPress?: () => void;
   onMorePress?: () => void;
 }
 
-export function CandidateHeader({ candidate, onBack, onStatusPress, onEmailPress, onCallPress, onMorePress }: CandidateHeaderProps) {
+export function CandidateHeader({ candidate, onBack, onStatusPress, onMorePress }: CandidateHeaderProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -57,14 +55,6 @@ export function CandidateHeader({ candidate, onBack, onStatusPress, onEmailPress
             <Ionicons name="arrow-back" size={24} color={BrandColors.white} />
           </TouchableOpacity>
         )}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.iconButton} onPress={onEmailPress}>
-            <Ionicons name="mail-outline" size={22} color={BrandColors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={onCallPress}>
-            <Ionicons name="call-outline" size={22} color={BrandColors.white} />
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Avatar and Name */}
@@ -116,18 +106,11 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 20,
   },
   backButton: {
-    padding: 8,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  iconButton: {
     padding: 8,
   },
   profileSection: {

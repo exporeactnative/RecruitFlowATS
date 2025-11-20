@@ -68,7 +68,7 @@ export default function SignUpScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -87,12 +87,12 @@ export default function SignUpScreen() {
             <Ionicons name="arrow-back" size={24} color={BrandColors.white} />
           </TouchableOpacity>
           <Image
-            source={require('@/assets/images/app-icon.png')}
+            source={require('@/assets/images/recruitflowlogo-removebg-preview.png')}
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.headerTitle}>Join RecruitFlow</Text>
-          <Text style={styles.headerSubtitle}>Start hiring smarter today</Text>
+          <Text style={styles.headerTitle}></Text>
+          <Text style={styles.headerSubtitle}>Start Hiring Smarter Today</Text>
         </LinearGradient>
 
         {/* Sign Up Form */}
@@ -270,7 +270,6 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BrandColors.white,
   },
   scrollContent: {
     flexGrow: 1,
@@ -280,8 +279,6 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
     paddingHorizontal: 24,
     alignItems: 'center',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
   },
   backButton: {
     position: 'absolute',
@@ -290,20 +287,21 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   logo: {
-    width: 70,
-    height: 70,
-    marginBottom: 12,
-    borderRadius: 18,
+    width: 260,
+    height: 260,
+    marginBottom: -80,
+    borderRadius: 50,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 15,
     fontWeight: '700',
     color: BrandColors.white,
     marginBottom: 6,
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 13,
     color: BrandColors.teal[50],
+    fontWeight: '400',
   },
   formContainer: {
     flex: 1,
