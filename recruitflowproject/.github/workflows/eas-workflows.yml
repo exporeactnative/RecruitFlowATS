@@ -1,0 +1,235 @@
+name: EAS Workflows
+
+on:
+  workflow_dispatch: # Manual trigger
+  push:
+    branches:
+      - main      # Auto-trigger on main branch (production)
+      - preview   # Auto-trigger on preview branch (preview)
+      - dev       # Auto-trigger on dev branch (development)
+
+jobs:
+  # Auto-publish OTA updates on push to main
+  update-production:
+    name: Publish OTA Update (Production)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for native changes
+        id: fingerprint
+        run: |
+          # Check if native dependencies or config changed
+          if git diff HEAD~1 HEAD --name-only | grep -E "package.json|app.json|app.config.js|eas.json|ios/|android/"; then
+            echo "⚠️  WARNING: Native changes detected!"
+            echo "The following files changed:"
+            git diff HEAD~1 HEAD --name-only | grep -E "package.json|app.json|app.config.js|eas.json|ios/|android/"
+            echo ""
+            echo "🔴 OTA update may not work correctly."
+            echo "🔴 You may need to create a new build with: eas build --platform ios --profile production"
+            echo ""
+            echo "native_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No native changes detected - safe for OTA update"
+            echo "native_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish update to production channel
+        run: eas update --auto --branch production --message "Auto-update from commit ${{ github.sha }}"
+        
+      - name: Comment on native changes
+        if: steps.fingerprint.outputs.native_changes == 'true'
+        run: |
+          echo "::warning::Native changes detected. This OTA update may require users to download a new build from the App Store."
+
+  # Auto-publish OTA updates on push to preview
+  update-preview:
+    name: Publish OTA Update (Preview)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/preview'
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for native changes
+        id: fingerprint
+        run: |
+          if git diff HEAD~1 HEAD --name-only | grep -E "package.json|app.json|app.config.js|eas.json|ios/|android/"; then
+            echo "⚠️  WARNING: Native changes detected!"
+            echo "native_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No native changes detected - safe for OTA update"
+            echo "native_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish update to preview channel
+        run: eas update --auto --branch preview --message "Auto-update from commit ${{ github.sha }}"
+        
+      - name: Comment on native changes
+        if: steps.fingerprint.outputs.native_changes == 'true'
+        run: |
+          echo "::warning::Native changes detected. Consider creating a new preview build."
+
+  # Auto-publish OTA updates on push to dev
+  update-development:
+    name: Publish OTA Update (Development)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for native changes
+        id: fingerprint
+        run: |
+          if git diff HEAD~1 HEAD --name-only | grep -E "package.json|app.json|app.config.js|eas.json|ios/|android/"; then
+            echo "⚠️  WARNING: Native changes detected!"
+            echo "native_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No native changes detected - safe for OTA update"
+            echo "native_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish update to development channel
+        run: eas update --auto --branch development --message "Auto-update from commit ${{ github.sha }}"
+        
+      - name: Comment on native changes
+        if: steps.fingerprint.outputs.native_changes == 'true'
+        run: |
+          echo "::warning::Native changes detected. Consider creating a new development build."
+
+  # Build production iOS app (manual trigger only)
+  build-ios-production:
+    name: Build iOS App (Production)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build iOS production app
+        run: eas build --platform ios --profile production --non-interactive --no-wait
+
+  # Build preview iOS app (manual trigger only)
+  build-ios-preview:
+    name: Build iOS App (Preview)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build iOS preview app
+        run: eas build --platform ios --profile preview --non-interactive --no-wait

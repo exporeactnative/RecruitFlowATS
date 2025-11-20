@@ -185,6 +185,7 @@ export default function CandidateProfileScreen() {
             onScheduleInterview={() => setShowScheduleModal(true)}
             onAddTask={() => setShowTaskModal(true)}
             onAddNote={() => setTriggerAddNote(true)}
+            onChangeStatus={() => setShowStatusModal(true)}
           />
 
           {/* Contact Information */}

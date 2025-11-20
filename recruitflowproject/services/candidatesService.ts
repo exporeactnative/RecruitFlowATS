@@ -247,4 +247,127 @@ export const candidatesService = {
       supabase.removeChannel(channel);
     };
   },
+
+  // ===== ANALYTICS FUNCTIONS =====
+
+  /**
+   * Get candidates added in the last 7 days
+   */
+  async getCandidatesThisWeek(): Promise<number> {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data, error } = await supabase
+      .from('candidates')
+      .select('id')
+      .gte('created_at', sevenDaysAgo.toISOString());
+
+    if (error) {
+      console.error('Error fetching candidates this week:', error);
+      return 0;
+    }
+
+    return data?.length || 0;
+  },
+
+  /**
+   * Calculate average time from 'new' status to 'hired' status
+   * Returns average in days
+   */
+  async getAverageTimeToHire(): Promise<number> {
+    const { data, error } = await supabase
+      .from('candidates')
+      .select('created_at, updated_at, status')
+      .eq('status', 'hired');
+
+    if (error || !data || data.length === 0) {
+      return 0;
+    }
+
+    const totalDays = data.reduce((sum, candidate) => {
+      const created = new Date(candidate.created_at);
+      const hired = new Date(candidate.updated_at);
+      const days = Math.floor((hired.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+      return sum + days;
+    }, 0);
+
+    return Math.round(totalDays / data.length);
+  },
+
+  /**
+   * Calculate offer acceptance rate
+   * (hired / (hired + offers + rejected)) * 100
+   */
+  async getOfferAcceptanceRate(): Promise<number> {
+    const { data: allCandidates, error } = await supabase
+      .from('candidates')
+      .select('status')
+      .in('status', ['hired', 'offer', 'rejected']);
+
+    if (error || !allCandidates || allCandidates.length === 0) {
+      return 0;
+    }
+
+    const hired = allCandidates.filter(c => c.status === 'hired').length;
+    const totalOffersExtended = allCandidates.length;
+    
+    if (totalOffersExtended === 0) return 0;
+    
+    return Math.round((hired / totalOffersExtended) * 100);
+  },
+
+  /**
+   * Calculate conversion rates between pipeline stages
+   */
+  async getConversionRates(): Promise<{
+    newToScreening: number;
+    screeningToInterview: number;
+    interviewToOffer: number;
+    offerToHired: number;
+  }> {
+    const { data, error } = await supabase
+      .from('candidates')
+      .select('status');
+
+    if (error || !data) {
+      return {
+        newToScreening: 0,
+        screeningToInterview: 0,
+        interviewToOffer: 0,
+        offerToHired: 0,
+      };
+    }
+
+    const statusCounts = {
+      new: data.filter(c => c.status === 'new').length,
+      screening: data.filter(c => c.status === 'screening').length,
+      interview: data.filter(c => c.status === 'interview').length,
+      offer: data.filter(c => c.status === 'offer').length,
+      hired: data.filter(c => c.status === 'hired').length,
+    };
+
+    // Calculate conversion rates (what % moved to next stage)
+    const newToScreening = statusCounts.new > 0 
+      ? Math.round((statusCounts.screening / (statusCounts.new + statusCounts.screening)) * 100)
+      : 0;
+    
+    const screeningToInterview = statusCounts.screening > 0
+      ? Math.round((statusCounts.interview / (statusCounts.screening + statusCounts.interview)) * 100)
+      : 0;
+    
+    const interviewToOffer = statusCounts.interview > 0
+      ? Math.round((statusCounts.offer / (statusCounts.interview + statusCounts.offer)) * 100)
+      : 0;
+    
+    const offerToHired = statusCounts.offer > 0
+      ? Math.round((statusCounts.hired / (statusCounts.offer + statusCounts.hired)) * 100)
+      : 0;
+
+    return {
+      newToScreening,
+      screeningToInterview,
+      interviewToOffer,
+      offerToHired,
+    };
+  },
 };

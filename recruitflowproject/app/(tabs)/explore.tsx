@@ -23,7 +23,19 @@ export default function PipelineScreen() {
     offer: 0,
     hired: 0,
   });
+  const [analytics, setAnalytics] = useState({
+    candidatesThisWeek: 0,
+    avgTimeToHire: 0,
+    offerAcceptRate: 0,
+    conversionRates: {
+      newToScreening: 0,
+      screeningToInterview: 0,
+      interviewToOffer: 0,
+      offerToHired: 0,
+    },
+  });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -37,8 +49,12 @@ export default function PipelineScreen() {
     return unsubscribe;
   }, []);
 
-  const loadStats = async () => {
+  const loadStats = async (isRefreshing = false) => {
     try {
+      if (!isRefreshing) {
+        setLoading(true);
+      }
+      // Load pipeline stats
       const stats = await candidatesService.getCandidateStats();
       setPipelineStats({
         new: stats.new,
@@ -47,11 +63,32 @@ export default function PipelineScreen() {
         offer: stats.offer,
         hired: stats.hired,
       });
+
+      // Load analytics data
+      const [thisWeek, avgTime, acceptRate, conversionRates] = await Promise.all([
+        candidatesService.getCandidatesThisWeek(),
+        candidatesService.getAverageTimeToHire(),
+        candidatesService.getOfferAcceptanceRate(),
+        candidatesService.getConversionRates(),
+      ]);
+
+      setAnalytics({
+        candidatesThisWeek: thisWeek,
+        avgTimeToHire: avgTime,
+        offerAcceptRate: acceptRate,
+        conversionRates,
+      });
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadStats(true);
   };
 
   const totalActive = Object.values(pipelineStats).reduce((sum, count) => sum + count, 0);
@@ -108,19 +145,19 @@ export default function PipelineScreen() {
     },
     {
       label: 'This Week',
-      value: '12',
+      value: analytics.candidatesThisWeek.toString(),
       icon: 'calendar' as const,
       color: colors.accent,
     },
     {
       label: 'Avg. Time to Hire',
-      value: '18d',
+      value: analytics.avgTimeToHire > 0 ? `${analytics.avgTimeToHire}d` : 'N/A',
       icon: 'time' as const,
       color: colors.info,
     },
     {
       label: 'Offer Accept Rate',
-      value: '85%',
+      value: analytics.offerAcceptRate > 0 ? `${analytics.offerAcceptRate}%` : 'N/A',
       icon: 'trending-up' as const,
       color: colors.success,
     },
@@ -149,7 +186,7 @@ export default function PipelineScreen() {
             <Text style={styles.headerTitle}>Pipeline</Text>
             <Text style={styles.headerSubtitle}>Recruitment Overview</Text>
           </View>
-          <TouchableOpacity style={styles.filterButton} onPress={loadStats}>
+          <TouchableOpacity style={styles.filterButton} onPress={() => loadStats()}>
             <Ionicons name="refresh-outline" size={24} color={BrandColors.white} />
           </TouchableOpacity>
         </View>
@@ -160,7 +197,17 @@ export default function PipelineScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={BrandColors.teal[500]}
+          />
+        }
+      >
         {/* Quick Stats */}
         <View style={styles.statsGrid}>
           {quickStats.map((stat, index) => (
@@ -191,9 +238,32 @@ export default function PipelineScreen() {
                     </Text>
                   </View>
                   <View style={styles.stageProgress}>
-                    <Text style={[styles.stagePercentage, { color: stage.color }]}>
-                      {totalActive > 0 ? Math.round((stage.count / totalActive) * 100) : 0}%
-                    </Text>
+                    <View style={styles.stageMetrics}>
+                      <Text style={[styles.stagePercentage, { color: stage.color }]}>
+                        {totalActive > 0 ? Math.round((stage.count / totalActive) * 100) : 0}%
+                      </Text>
+                      {/* Show conversion rate to next stage */}
+                      {stage.status === 'new' && analytics.conversionRates.newToScreening > 0 && (
+                        <Text style={[styles.conversionRate, { color: colors.textSecondary }]}>
+                          {analytics.conversionRates.newToScreening}% → Screening
+                        </Text>
+                      )}
+                      {stage.status === 'screening' && analytics.conversionRates.screeningToInterview > 0 && (
+                        <Text style={[styles.conversionRate, { color: colors.textSecondary }]}>
+                          {analytics.conversionRates.screeningToInterview}% → Interview
+                        </Text>
+                      )}
+                      {stage.status === 'interview' && analytics.conversionRates.interviewToOffer > 0 && (
+                        <Text style={[styles.conversionRate, { color: colors.textSecondary }]}>
+                          {analytics.conversionRates.interviewToOffer}% → Offer
+                        </Text>
+                      )}
+                      {stage.status === 'offer' && analytics.conversionRates.offerToHired > 0 && (
+                        <Text style={[styles.conversionRate, { color: colors.textSecondary }]}>
+                          {analytics.conversionRates.offerToHired}% → Hired
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 </View>
                 {/* Progress Bar */}
@@ -350,9 +420,17 @@ const styles = StyleSheet.create({
   stageProgress: {
     alignItems: 'flex-end',
   },
+  stageMetrics: {
+    alignItems: 'flex-end',
+  },
   stagePercentage: {
     fontSize: 18,
     fontWeight: '700',
+    marginBottom: 2,
+  },
+  conversionRate: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   progressBar: {
     height: 6,

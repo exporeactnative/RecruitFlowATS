@@ -16,6 +16,7 @@ interface CandidateActionsProps {
   onScheduleInterview: () => void;
   onAddTask: () => void;
   onAddNote: () => void;
+  onChangeStatus: () => void;
 }
 
 export function CandidateActions({
@@ -28,6 +29,7 @@ export function CandidateActions({
   onScheduleInterview,
   onAddTask,
   onAddNote,
+  onChangeStatus,
 }: CandidateActionsProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -42,6 +44,15 @@ export function CandidateActions({
       onPress: () => {
         setShowActionsModal(false);
         onScheduleInterview();
+      },
+    },
+    {
+      icon: 'swap-horizontal' as const,
+      label: 'Change Status',
+      color: BrandColors.teal[500],
+      onPress: () => {
+        setShowActionsModal(false);
+        onChangeStatus();
       },
     },
     {
